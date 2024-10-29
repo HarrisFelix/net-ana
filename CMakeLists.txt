@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(analyzer C)
 
+# Enable export of compile commands
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Include directory for public headers
 include_directories(include)
 
