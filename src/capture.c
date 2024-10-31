@@ -1,5 +1,6 @@
 #include "capture.h"
-#include "protocols/eth.h"
+#include "protocols/data-link.h"
+#include "protocols/network.h"
 #include "utils.h"
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -18,8 +19,8 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   /* Define packet handling related structures. */
   struct pcap_handler_args *packet_args = (struct pcap_handler_args *)args;
   const struct ether_header *ethernet;
-  const struct ip *ip;
-  const struct arp_hdr *arp;
+  // const struct ip *ip;
+  const struct arphdr *arp;
 
   /* Cast ethernet and ip frame. */
   int size_ethernet = sizeof(struct ether_header);
@@ -33,14 +34,22 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   /* Print the frame according to the protocol */
   switch (ether_value) {
   case ETHERTYPE_IP:
-    ip = (struct ip *)(packet + size_ethernet);
+    // ip = (struct ip *)(packet + size_ethernet);
     break;
   case ETHERTYPE_IPV6:
     break;
   case ETHERTYPE_ARP:
-    arp = (struct arp_hdr *)(packet + size_ethernet);
+    arp = (struct arphdr *)(packet + size_ethernet);
+    print_arp_frame(arp, packet_args->verbosity);
     break;
   }
+
+  /* Size of the frame without counting the ethernet header */
+  printf(", length %d", header->len - size_ethernet);
+
+  /* Print the bytes and ASCII of the packet. */
+  if (packet_args->verbosity == HIGH)
+    print_packet_bytes(packet + size_ethernet, header->caplen - size_ethernet);
 
   printf("\n");
 }

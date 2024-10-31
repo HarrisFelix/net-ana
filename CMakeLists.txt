@@ -10,8 +10,8 @@ include_directories(include)
 # Find all .c files in src/ and add them to the project
 file(GLOB_RECURSE SOURCES "src/*.c")
 
-# Set default compile options to include debugging symbols
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+# Set default compile options
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 
 # Create the executable from the source files
 add_executable(analyzer ${SOURCES})
