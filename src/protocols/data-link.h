@@ -7,6 +7,7 @@
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 
+#define ETHERTYPE_ISIS 0xFEFE
 #define ETHERTYPE_LINKLOCAL 0xFE80
 
 struct name_value_pair_t {

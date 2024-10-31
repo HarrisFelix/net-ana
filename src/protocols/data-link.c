@@ -10,6 +10,7 @@ ether_type_t ether_types[] = {
     {ETHERTYPE_IPV6, "IP6"},
     {ETHERTYPE_ARP, "ARP"},
     {ETHERTYPE_REVARP, "RARP"},
+    {ETHERTYPE_ISIS, "ISIS"},
     {ETHERTYPE_LOOPBACK, "Loopback"},
     {ETHERTYPE_LINKLOCAL, "Link-local"},
 };
@@ -84,6 +85,7 @@ void print_arp_header(const struct arphdr *arp) {
          arp_protocol.value == ETHERTYPE_IP ? "v4" : "", arp->ar_pln);
 }
 
+/* https://people.computing.clemson.edu/~westall/853/notes/arprecv.pdf */
 void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity) {
   u_short arp_operation = ntohs(arp->ar_op);
 
@@ -111,6 +113,8 @@ void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity) {
   // TODO:
   // https://stackoverflow.com/questions/4736718/mac-addresspad-missing-left-zeros
   // Handle RARP Reply
+  // What's oui Unknown?
+  // https://www.secureideas.com/blog/of-mac-addresses-and-oui-a-subtle-but-useful-recon-resource
   switch (arp_operation) {
   case ARPOP_REQUEST:
     printf(", %s", is_gratuitous ? "Announcement" : "Request");
@@ -129,5 +133,13 @@ void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity) {
     printf(" tell %s (oui Unknown)",
            ether_ntoa((const struct ether_addr *)ar_tha));
     break;
+  case ARPOP_REVREPLY:
+    printf(", Reverse Reply %s", ether_ntoa((const struct ether_addr *)ar_tha));
+    printf(" is-at %s (oui Unknown)",
+           ether_ntoa((const struct ether_addr *)ar_sha));
+    break;
+  default:
+    /* https://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml */
+    printf(", Unsupported ARP operation (0x%04X)", arp_operation);
   }
 }
