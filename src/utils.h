@@ -5,10 +5,13 @@
 
 #include <pcap.h>
 
-void print_devices();
-void print_frame();
+enum verbosity_level { LOW = 1, MEDIUM, HIGH };
 
-void ether_type_to_name();
+char *get_first_non_loopback_device(char *program_name);
+void print_devices(char *program_name);
+
+void print_payload();
+void print_frame();
 void print_live_capture_summary();
 void print_timestamp(const struct pcap_pkthdr *header);
 

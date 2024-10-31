@@ -1,8 +1,15 @@
 #include "capture.h"
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+void usage(char *program_name) {
+  printf(
+      "Usage: %s [ -i interface ] [ -o file ] [ -f filter ] [ -v verbosity ]\n",
+      program_name);
+}
 
 int main(int argc, char **argv) {
   int c;
@@ -10,7 +17,8 @@ int main(int argc, char **argv) {
   char *interface = NULL;
   char *file = NULL;
   char *filter = NULL;
-  int verbosity = 0;
+  int verbosity = 1;
+  bool supplied_verbosity = false;
 
   int index;
 
@@ -27,15 +35,19 @@ int main(int argc, char **argv) {
       break;
     case 'v':
       verbosity = atoi(optarg);
+      supplied_verbosity = true;
       break;
     case '?':
       if (optopt == 'i' || optopt == 'f' || optopt == 'v')
-        fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+        fprintf(stderr, "%s: option -%c requires an argument.\n", argv[0],
+                optopt);
       else if (isprint(optopt))
-        fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+        fprintf(stderr, "%s: unrecognized option `-%c'.\n", argv[0], optopt);
       else
-        fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+        fprintf(stderr, "%s: unknown option character `\\x%x'.\n", argv[0],
+                optopt);
 
+      usage(argv[0]);
       return EXIT_FAILURE;
     default:
       abort();
@@ -43,22 +55,27 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (!(interface || file) || (interface && file)) {
-    fprintf(stderr, "Needs to define exactly either option -i or -f.\n");
-    exit(EXIT_FAILURE);
-  }
-
   if (verbosity < 1 || verbosity > 3) {
-    fprintf(stderr, "Verbosity must be between 1 and 3 included.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (index = optind; index < argc; index++) {
-    printf("Non-option argument %s\n", argv[index]);
+    fputs("-v must be set between 1 and 3.\n", stderr);
     return EXIT_FAILURE;
   }
 
-  capture_loop(argv[0], interface, file, filter, verbosity);
+  for (index = optind; index < argc; index++) {
+    fprintf(stderr, "%s: unrecognized argument %s\n", argv[0], argv[index]);
+    usage(argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  if (interface && file) {
+    printf("%s: defaulting to file analyzer because both arguments were "
+           "provided\n",
+           argv[0]);
+
+    interface = NULL;
+  }
+
+  capture_loop(argv[0], interface, file, filter, (u_int)verbosity,
+               supplied_verbosity);
 
   return EXIT_SUCCESS;
 }

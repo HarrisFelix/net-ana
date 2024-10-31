@@ -1,11 +1,43 @@
 #include "utils.h"
+#include <net/ethernet.h>
 #include <pcap.h>
+#include <pcap/pcap.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/_endian.h>
 #include <time.h>
 
 extern pcap_t *handle;
+
+char *get_first_non_loopback_device(char *program_name) {
+  char errbuf[PCAP_ERRBUF_SIZE];
+  char *interface = NULL;
+  pcap_if_t *device, *alldevs;
+  int i = 0;
+
+  if (pcap_findalldevs(&alldevs, errbuf) == PCAP_ERROR) {
+    fprintf(stderr, "%s: couldn't retrieve devices (%s)\n", program_name,
+            errbuf);
+    return NULL;
+  }
+
+  for (device = alldevs; device != NULL; device = device->next) {
+    if (device->flags & PCAP_IF_LOOPBACK ||
+        !(device->flags & PCAP_IF_CONNECTION_STATUS_CONNECTED)) {
+      continue;
+    }
+
+    break;
+  }
+
+  if (device)
+    interface = strdup(device->name);
+
+  pcap_freealldevs(alldevs);
+  return interface;
+}
 
 void print_live_capture_summary() {
   int stats_err = 0;
@@ -27,18 +59,30 @@ void print_live_capture_summary() {
          packet_stats.ps_ifdrop != 1 ? 's' : 0);
 }
 
-void print_devices() {
+void print_devices(char *program_name) {
   char errbuf[PCAP_ERRBUF_SIZE];
-  pcap_if_t *interfaces;
+  pcap_if_t *device, *alldevs;
   int i = 0;
 
-  if (pcap_findalldevs(&interfaces, errbuf) == PCAP_ERROR) {
-    fprintf(stderr, "Couldn't list interfaces.\n");
+  if (pcap_findalldevs(&alldevs, errbuf) == PCAP_ERROR) {
+    fprintf(stderr, "%s: couldn't list devices (%s)\n", program_name, errbuf);
+    return;
   }
 
-  printf("Available interfaces:\n");
-  for (; interfaces; interfaces = interfaces->next)
-    printf("%d: %s\n", i++, interfaces->name);
+  printf("%-10s %-40s %-10s\n", "Name", "Description", "Connection Status");
+  printf("--------------------------------------------------------------\n");
+
+  for (device = alldevs; device != NULL; device = device->next) {
+    const char *status = (device->flags & PCAP_IF_CONNECTION_STATUS_CONNECTED)
+                             ? "Connected"
+                             : "Disconnected";
+
+    printf("%-10s %-40s %-10s\n", device->name,
+           device->description ? device->description : "No description",
+           status);
+  }
+
+  pcap_freealldevs(alldevs);
 }
 
 /* https://stackoverflow.com/questions/2408976/struct-timeval-to-printable-format

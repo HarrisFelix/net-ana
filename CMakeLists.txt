@@ -8,7 +8,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include_directories(include)
 
 # Find all .c files in src/ and add them to the project
-file(GLOB SOURCES "src/*.c")
+file(GLOB_RECURSE SOURCES "src/*.c")
+
+# Set default compile options to include debugging symbols
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 # Create the executable from the source files
 add_executable(analyzer ${SOURCES})
@@ -20,4 +23,11 @@ target_link_libraries(analyzer pcap)
 add_custom_target(test
     COMMAND ./analyzer -i en0 -v 1
     DEPENDS analyzer
+)
+
+# Custom target to build a release version and place it in /bin
+add_custom_target(release_build ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin
+    COMMAND ${CMAKE_COMMAND} -E env CFLAGS="-O3" ${CMAKE_C_COMPILER} ${SOURCES} -o ${CMAKE_SOURCE_DIR}/bin/analyzer -lpcap
+    COMMENT "Building release version of analyzer in /bin"
 )
