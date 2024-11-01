@@ -5,14 +5,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-void usage(char *program_name) {
+char const *program_name;
+
+void usage() {
   printf(
       "Usage: %s [ -i interface ] [ -o file ] [ -f filter ] [ -v verbosity ]\n",
       program_name);
 }
 
 int main(int argc, char **argv) {
-  int c;
+  program_name = argv[0];
 
   char *interface = NULL;
   char *file = NULL;
@@ -21,7 +23,7 @@ int main(int argc, char **argv) {
   bool supplied_verbosity = false;
 
   int index;
-
+  int c;
   while ((c = getopt(argc, argv, "i:o:f:v:")) != -1) {
     switch (c) {
     case 'i':
@@ -38,16 +40,7 @@ int main(int argc, char **argv) {
       supplied_verbosity = true;
       break;
     case '?':
-      if (optopt == 'i' || optopt == 'f' || optopt == 'v')
-        fprintf(stderr, "%s: option -%c requires an argument.\n", argv[0],
-                optopt);
-      else if (isprint(optopt))
-        fprintf(stderr, "%s: unrecognized option `-%c'.\n", argv[0], optopt);
-      else
-        fprintf(stderr, "%s: unknown option character `\\x%x'.\n", argv[0],
-                optopt);
-
-      usage(argv[0]);
+      usage();
       return EXIT_FAILURE;
     default:
       abort();
@@ -55,27 +48,31 @@ int main(int argc, char **argv) {
     }
   }
 
+  /* Doesn't allow the verbosity to be set outside range, but if it wasn't
+   * supplied set it to 0 for a minimal output, equivalent to tcpdump -q */
   if (verbosity < 1 || verbosity > 3) {
     fputs("-v must be set between 1 and 3.\n", stderr);
     return EXIT_FAILURE;
+  } else if (!supplied_verbosity) {
+    verbosity = 0;
   }
 
   for (index = optind; index < argc; index++) {
-    fprintf(stderr, "%s: unrecognized argument %s\n", argv[0], argv[index]);
-    usage(argv[0]);
+    fprintf(stderr, "%s: unrecognized argument %s\n", program_name,
+            argv[index]);
+    usage();
     return EXIT_FAILURE;
   }
 
   if (interface && file) {
     printf("%s: defaulting to file analyzer because both arguments were "
            "provided\n",
-           argv[0]);
+           program_name);
 
     interface = NULL;
   }
 
-  capture_loop(argv[0], interface, file, filter, (u_int)verbosity,
-               supplied_verbosity);
+  capture_loop(interface, file, filter, (u_int)verbosity);
 
   return EXIT_SUCCESS;
 }

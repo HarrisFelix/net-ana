@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern char const *program_name;
 pcap_t *handle;
 u_int captured_packets_count = 0;
 
@@ -63,15 +64,15 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   captured_packets_count++;
 }
 
-void init_message(char *program_name, char *interface, char *file,
-                  bool defaulting, bool supplied_verbosity) {
+void init_message(char *interface, char *file, bool defaulting,
+                  enum verbosity_level verbosity) {
   int data_link = pcap_datalink(handle);
 
   if (defaulting)
     printf("%s: defaulting to data link type %s\n", program_name,
            pcap_datalink_val_to_name(data_link));
 
-  if (!supplied_verbosity)
+  if (!verbosity)
     printf("%s: verbose output suppressed, use -v[v]... for full protocol "
            "decode\n",
            program_name);
@@ -87,9 +88,8 @@ void init_message(char *program_name, char *interface, char *file,
   }
 }
 
-void apply_bpf_filter(char *program_name, char *interface,
-                      struct bpf_program *fp, bpf_u_int32 *mask,
-                      bpf_u_int32 *net, char *filter) {
+void apply_bpf_filter(char *interface, struct bpf_program *fp,
+                      bpf_u_int32 *mask, bpf_u_int32 *net, char *filter) {
   char errbuf[PCAP_ERRBUF_SIZE];
 
   if (pcap_lookupnet(interface, net, mask, errbuf) == PCAP_ERROR) {
@@ -109,8 +109,7 @@ void apply_bpf_filter(char *program_name, char *interface,
   }
 }
 
-void capture_loop(char *program_name, char *interface, char *file, char *filter,
-                  u_int verbosity, bool supplied_verbosity) {
+void capture_loop(char *interface, char *file, char *filter, u_int verbosity) {
   char errbuf[PCAP_ERRBUF_SIZE];
   struct pcap_handler_args args = {verbosity};
   bool defaulting = (bool)(!interface && !file);
@@ -134,7 +133,7 @@ void capture_loop(char *program_name, char *interface, char *file, char *filter,
       /* Similar to pcap_lookupdev but does not just select the first non
        * loopback device but also the first one that is up and running
        * (connected) */
-      interface = custom_lookupdev(program_name);
+      interface = custom_lookupdev();
 
     handle = pcap_open_live(interface, SNAPLEN, 1, 1, errbuf);
     if (!handle) {
@@ -143,17 +142,17 @@ void capture_loop(char *program_name, char *interface, char *file, char *filter,
       /* Check if the error message corresponds to the
        * PCAP_ERROR_NO_SUCH_DEVICE message. */
       if (strstr(errbuf, pcap_statustostr(PCAP_ERROR_NO_SUCH_DEVICE)) != NULL)
-        print_devices(program_name);
+        print_devices();
 
       exit(EXIT_FAILURE);
     }
 
-    apply_bpf_filter(program_name, interface, &fp, &mask, &net, filter);
+    apply_bpf_filter(interface, &fp, &mask, &net, filter);
     signal(SIGINT, print_live_capture_summary);
   }
 
   /* Pretty print to show which interface or file we are sniffing */
-  init_message(program_name, interface, file, defaulting, supplied_verbosity);
+  init_message(interface, file, defaulting, verbosity);
 
   /* Bulk of the program */
   pcap_loop(handle, 0, got_packet, (u_char *)&args);

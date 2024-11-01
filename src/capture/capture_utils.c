@@ -10,10 +10,11 @@
 #include <sys/_endian.h>
 #include <time.h>
 
+extern char const *program_name;
 extern pcap_t *handle;
 extern u_int captured_packets_count;
 
-char *custom_lookupdev(char *program_name) {
+char *custom_lookupdev() {
   char errbuf[PCAP_ERRBUF_SIZE];
   char *interface = NULL;
   pcap_if_t *device, *alldevs;
@@ -60,7 +61,7 @@ void print_live_capture_summary() {
          packet_stats.ps_drop != 1 ? 's' : 0);
 }
 
-void print_devices(char *program_name) {
+void print_devices() {
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_if_t *device, *alldevs;
 

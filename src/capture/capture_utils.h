@@ -5,10 +5,10 @@
 
 #include <pcap.h>
 
-enum verbosity_level { LOW = 1, MEDIUM, HIGH };
+enum verbosity_level { NONE, LOW, MEDIUM, HIGH };
 
-char *custom_lookupdev(char *program_name);
-void print_devices(char *program_name);
+char *custom_lookupdev();
+void print_devices();
 
 void print_payload();
 void print_frame();
