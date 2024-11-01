@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "capture_utils.h"
 #include <ctype.h>
 #include <net/ethernet.h>
 #include <pcap.h>
@@ -11,8 +11,9 @@
 #include <time.h>
 
 extern pcap_t *handle;
+extern u_int captured_packets_count;
 
-char *get_first_non_loopback_device(char *program_name) {
+char *custom_lookupdev(char *program_name) {
   char errbuf[PCAP_ERRBUF_SIZE];
   char *interface = NULL;
   pcap_if_t *device, *alldevs;
@@ -51,12 +52,12 @@ void print_live_capture_summary() {
     exit(EXIT_FAILURE);
   }
 
-  printf("\n\n%d packet%c captured.\n", packet_stats.ps_recv,
+  printf("\n\n%d packet%c captured\n", captured_packets_count,
+         captured_packets_count != 1 ? 's' : 0);
+  printf("%d packet%c received by filter\n", packet_stats.ps_recv,
          packet_stats.ps_recv != 1 ? 's' : 0);
-  printf("%d packet%c dropped by kernel.\n", packet_stats.ps_drop,
+  printf("%d packet%c dropped by kernel\n", packet_stats.ps_drop,
          packet_stats.ps_drop != 1 ? 's' : 0);
-  printf("%d packet%c dropped by device.\n", packet_stats.ps_ifdrop,
-         packet_stats.ps_ifdrop != 1 ? 's' : 0);
 }
 
 void print_devices(char *program_name) {

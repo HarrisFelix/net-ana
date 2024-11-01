@@ -1,5 +1,6 @@
 #include "data-link.h"
 #include <net/if_arp.h>
+#include <pcap/pcap.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -10,9 +11,13 @@ ether_type_t ether_types[] = {
     {ETHERTYPE_IPV6, "IP6"},
     {ETHERTYPE_ARP, "ARP"},
     {ETHERTYPE_REVARP, "RARP"},
-    {ETHERTYPE_ISIS, "ISIS"},
     {ETHERTYPE_LOOPBACK, "Loopback"},
-    {ETHERTYPE_LINKLOCAL, "Link-local"},
+};
+
+lsap_t lsaps[] = {
+    {LSAP_NULL, "NULL"},
+    {LSAP_ISIS, "IS-IS"},
+    {LSAP_SNAP, "SNAP"},
 };
 
 struct name_value_pair_t
@@ -26,29 +31,48 @@ get_name_value_pair(u_short type, struct name_value_pair_t *name_value_pairs,
     }
   }
 
-  // HACK: Print unsupported values. Observation shows that they're
-  // actually the start of loopback link-local addresses
-  printf(" 0x%04X:", big_endian_value);
-
   return (struct name_value_pair_t){big_endian_value, "UNKNOWN"};
 }
 
 u_short print_ethernet_header(const struct ether_header *ethernet,
-                              enum verbosity_level verbosity) {
-  size_t ether_types_len = sizeof(ether_types) / sizeof(ether_types[0]);
-  ether_type_t ether_type = (ether_type_t)get_name_value_pair(
-      ethernet->ether_type, (struct name_value_pair_t *)ether_types,
-      ether_types_len);
-  printf(" %s", ether_type.name);
+                              bpf_u_int32 len, enum verbosity_level verbosity) {
+  struct name_value_pair_t name_value_pair = {0, NULL};
+  bool is_802_3 = htons(ethernet->ether_type) <= ETH_FRAME_TYPE_THRESHOLD;
 
-  if (verbosity == HIGH) {
-    printf(" (%s >",
-           ether_ntoa((const struct ether_addr *)&ethernet->ether_shost));
-    printf(" %s)",
-           ether_ntoa((const struct ether_addr *)&ethernet->ether_dhost));
+  if (!is_802_3) {
+    /* https://en.wikipedia.org/wiki/EtherType */
+    size_t ether_types_len = sizeof(ether_types) / sizeof(ether_types[0]);
+    name_value_pair = get_name_value_pair(
+        ethernet->ether_type, (struct name_value_pair_t *)ether_types,
+        ether_types_len);
+  } else {
+    size_t lsaps_len = sizeof(lsaps) / sizeof(lsaps[0]);
+    /* Explaining the pointer logic, we're looking at the memory right after the
+     * traditional EtherType field which here actually contains a length since
+     * it's IEEE 802.3, we could have defined a struct to make it more obvious
+     * but since it's the only time we're doing something like that...
+     */
+    name_value_pair =
+        get_name_value_pair(*(u_short *)(ethernet + 1),
+                            (struct name_value_pair_t *)lsaps, lsaps_len);
   }
 
-  return ether_type.value;
+  if (verbosity == HIGH) {
+    printf(" %s >",
+           ether_ntoa((const struct ether_addr *)&ethernet->ether_shost));
+    printf(" %s,",
+           ether_ntoa((const struct ether_addr *)&ethernet->ether_dhost));
+    printf(" %s", !is_802_3 ? "ethertype" : "IEEE 802.3,");
+    printf("%s", name_value_pair.value == LSAP_ISIS ? " OSI" : "");
+  }
+
+  printf(" %s", name_value_pair.name);
+  if (verbosity == HIGH)
+    printf("%s (0x%04x), length %d",
+           name_value_pair.value == ETHERTYPE_IP ? "v4" : "",
+           name_value_pair.value, len);
+
+  return name_value_pair.value;
 }
 
 /* Even though we only obverse Ethernet ARP frames,
@@ -112,8 +136,7 @@ void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity) {
   /* Handle ARP requests and replies including RARP */
   // TODO:
   // https://stackoverflow.com/questions/4736718/mac-addresspad-missing-left-zeros
-  // Handle RARP Reply
-  // What's oui Unknown?
+  // What's oui Unknown? Maybe set a struct to support the most common oui
   // https://www.secureideas.com/blog/of-mac-addresses-and-oui-a-subtle-but-useful-recon-resource
   switch (arp_operation) {
   case ARPOP_REQUEST:

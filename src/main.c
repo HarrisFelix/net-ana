@@ -1,4 +1,4 @@
-#include "capture.h"
+#include "capture/capture.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
