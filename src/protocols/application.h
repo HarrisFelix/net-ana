@@ -1,0 +1,6 @@
+// Copyright 2024 Felix Harris Ndiaye
+
+#ifndef SRC_PROTOCOLS_APPLICATION_H_
+#define SRC_PROTOCOLS_APPLICATION_H_
+
+#endif  // SRC_PROTOCOLS_APPLICATION_H_
