@@ -2,11 +2,17 @@
 #include "network.h"
 #include "transport.h"
 #include <netdb.h>
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
+#include <netinet/ip6.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/socket.h>
 
+/* Print the encapsulated protocol of an IP or IPv6 frame, uint32_t was
+ * chosen instead of uint16_t to support Jumbo Payload of IPv6 */
 void print_ip_or_ip6_encapsulated_protocol(const void *header, u_char protocol,
+                                           uint32_t len,
                                            enum verbosity_level verbosity) {
   switch (protocol) {
   case IPPROTO_TCP:
@@ -16,11 +22,12 @@ void print_ip_or_ip6_encapsulated_protocol(const void *header, u_char protocol,
     print_udp_frame((const struct udphdr *)header, verbosity);
     break;
   case IPPROTO_ICMP:
-    print_icmp_frame((const struct icmp *)header, verbosity);
+    print_icmp_frame((const struct icmp *)header, len, verbosity);
     break;
   case IPPROTO_ICMPV6:
-    print_icmp6_frame((const struct icmp6_hdr *)header, verbosity);
+    print_icmp6_frame((const struct icmp6_hdr *)header, len, verbosity);
     break;
+  case IPPROTO_IGMP:
   default:
     printf(": Unsupported protocol (%d)", protocol);
   }
@@ -33,11 +40,16 @@ void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity) {
   if (verbosity >= MEDIUM) {
     flags = NI_NUMERICHOST | NI_NUMERICSERV;
 
-    printf(" (tos 0x%d", ip->ip_tos);
+    printf(" (");
+    if (verbosity == HIGH) {
+      printf("version %d", ip->ip_v);
+      printf(", ihl %d, ", ip->ip_hl);
+    }
+    printf("tos 0x%d", ip->ip_tos);
     printf(", ttl %d", ip->ip_ttl);
     printf(", id %d", htons(ip->ip_id));
     printf(", offset %d", htons(ip->ip_off) & IP_OFFMASK);
-    /* Seeminggly DF and MF can be set at the same time
+    /* Seemingly DF and MF can be set at the same time
      * https://ask.wireshark.org/question/22131/strange-ip-flags-mf-and-df/ */
     printf(", flags [%s%s%s%s]", (htons(ip->ip_off) & IP_RF) ? "RF" : "",
            (htons(ip->ip_off) & IP_DF) ? "DF" : "",
@@ -45,6 +57,9 @@ void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity) {
            (htons(ip->ip_off) & ~IP_OFFMASK) ? "" : "none");
     printf(", proto %s (%d)",
            string_to_upper(getprotobynumber(ip->ip_p)->p_name), ip->ip_p);
+    printf(", chksum 0x%04x (%s)", htons(ip->ip_sum),
+           (validate_checksum((const void *)ip, ip->ip_hl)) ? "incorrect"
+                                                            : "correct");
     printf(", length %d)", htons(ip->ip_len));
   }
 
@@ -69,7 +84,7 @@ void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity) {
   /* Source */
   if ((error = getnameinfo(src_addr, addrlen, hbuf, sizeof(hbuf), sbuf,
                            sizeof(sbuf), flags)) == 0) {
-    if (ports.source)
+    if (ports.source && verbosity == LOW)
       printf(", %s.%s >", hbuf, sbuf);
     else
       printf(", %s >", hbuf);
@@ -80,14 +95,16 @@ void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity) {
   if ((error = getnameinfo(dst_addr, addrlen, hbuf, sizeof(hbuf), sbuf,
                            sizeof(sbuf), flags)) == 0) {
     printf(" %s", hbuf);
-    if (ports.destination)
+    if (ports.destination && verbosity == LOW)
       printf(".%s", sbuf);
   } else
     printf(" %s\n", gai_strerror(error));
 
-  /* Now we can take care of printing the encapsulated protocol, the IP payload
+  /* Now we can take care of printing the encapsulated protocol, the IP payload,
+   * length converted to number of 32-bit words for checksum purposes
    */
-  print_ip_or_ip6_encapsulated_protocol(ip + 1, ip->ip_p, verbosity);
+  print_ip_or_ip6_encapsulated_protocol(
+      ip + 1, ip->ip_p, htons(ip->ip_len) / 2 - ip->ip_hl, verbosity);
 }
 
 void print_ip6_frame(const struct ip6_hdr *ip6,
@@ -132,7 +149,7 @@ void print_ip6_frame(const struct ip6_hdr *ip6,
   // "local", also doesn't seem to recognize the local machine name...
   if ((error = getnameinfo(src_addr, addrlen, hbuf, sizeof(hbuf), sbuf,
                            sizeof(sbuf), flags)) == 0) {
-    if (ports.source)
+    if (ports.source && verbosity == LOW)
       printf(", %s.%s >", hbuf, sbuf);
     else
       printf(", %s >", hbuf);
@@ -143,21 +160,77 @@ void print_ip6_frame(const struct ip6_hdr *ip6,
   if ((error = getnameinfo(dst_addr, addrlen, hbuf, sizeof(hbuf), sbuf,
                            sizeof(sbuf), flags)) == 0) {
     printf(" %s", hbuf);
-    if (ports.destination)
+    if (ports.destination && verbosity == LOW)
       printf(".%s", sbuf);
   } else
     printf(" %s\n", gai_strerror(error));
+
+  /* Now we can take care of printing the encapsulated protocol, the IPv6
+   * payload
+   * TODO: Take care of the length appropriately */
+  print_ip_or_ip6_encapsulated_protocol(
+      ip6 + 1, ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt,
+      ip6->ip6_ctlun.ip6_un1.ip6_un1_plen, verbosity);
 }
 
-void print_icmp_frame(const struct icmp *icmp, enum verbosity_level verbosity) {
+void print_icmp_frame(const struct icmp *icmp, uint32_t len,
+                      enum verbosity_level verbosity) {
   printf(": ICMP");
-  if (verbosity == NONE)
-    return;
+
+  switch (icmp->icmp_type) {
+  case ICMP_ECHOREPLY:
+    printf(", echo reply");
+    break;
+  case ICMP_ECHO:
+    printf(", echo request");
+    break;
+  case ICMP_UNREACH:
+  default:
+    printf(", type %d", icmp->icmp_type);
+  }
+
+  printf(", id %d, seq %d", htons(icmp->icmp_hun.ih_idseq.icd_id),
+         htons(icmp->icmp_hun.ih_idseq.icd_seq));
+
+  if (verbosity >= MEDIUM)
+    printf(", cksum 0x%04x (%s)", htons(icmp->icmp_cksum),
+           validate_checksum(icmp, len) ? "incorrect" : "correct");
 }
 
-void print_icmp6_frame(const struct icmp6_hdr *icmp6,
+void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint32_t len,
                        enum verbosity_level verbosity) {
-  printf(": ICMPv6");
-  if (verbosity == NONE)
+  char buf[INET6_ADDRSTRLEN];
+
+  printf(": ICMP6");
+
+  /* FIXME: inet_ntoa deprecated */
+  switch (icmp6->icmp6_type) {
+  case ND_ROUTER_SOLICIT:
+    printf(", router solicitation");
+    break;
+  case ND_ROUTER_ADVERT:
+    printf(", router advertisement");
+    break;
+  case ND_NEIGHBOR_SOLICIT:
+    printf(", neighbor solicitation, who has %s",
+           inet_ntop(AF_INET6,
+                     &((const struct nd_neighbor_solicit *)icmp6)->nd_ns_target,
+                     buf, INET6_ADDRSTRLEN));
+    // printf("Flags [%s]");
+    break;
+  case ND_NEIGHBOR_ADVERT:
+    printf(", neighbor advertisement");
+    if (verbosity >= MEDIUM)
+      printf(
+          ", target is %s",
+          inet_ntop(AF_INET6,
+                    &((const struct nd_neighbor_advert *)icmp6)->nd_na_target,
+                    buf, INET6_ADDRSTRLEN));
+    break;
+  default:
+    printf(", type %d", icmp6->icmp6_type);
+  }
+
+  if (verbosity >= MEDIUM)
     return;
 }

@@ -4,10 +4,12 @@
 #include <pcap.h>
 #include <pcap/pcap.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/_endian.h>
+#include <sys/_types/_u_char.h>
 #include <time.h>
 
 extern char const *program_name;
@@ -97,10 +99,10 @@ void print_timestamp(const struct pcap_pkthdr *header) {
   nowtm = localtime(&nowtime);
   strftime(tmbuf, sizeof tmbuf, "%H:%M:%S", nowtm);
   snprintf(buf, sizeof buf, "%s.%06d", tmbuf, header->ts.tv_usec);
-  printf("%s", buf);
+  printf("[%s]", buf);
 }
 
-void print_packet_bytes(const u_char *packet, int len) {
+void print_packet_bytes(const u_char *packet, uint len) {
   for (int i = 0; i < len; i++) {
     /* HEX */
     if (i % 16 == 0)
@@ -128,4 +130,19 @@ void print_packet_bytes(const u_char *packet, int len) {
       }
     }
   }
+}
+
+/* https://datatracker.ietf.org/doc/html/rfc1071
+ * Little endian implementation of a checksum */
+uint16_t validate_checksum(const void *packet, uint len) {
+  uint32_t sum = 0;
+
+  /* len is the number of 32-bit words, so we multiply it by two to get the
+   * number of 16-bit words */
+  for (uint i = 0; i < len * 2; i++) {
+    sum += htons(((uint16_t *)packet)[i]);
+  }
+
+  /* Bit manipiulation to add the carry and not consider it in the compkement */
+  return (uint16_t)~(sum + (sum >> 16) & 0xffff);
 }
