@@ -3,10 +3,20 @@
 #ifndef SRC_PROTOCOLS_DATA_LINK_H_
 #define SRC_PROTOCOLS_DATA_LINK_H_
 
-#include "../capture/capture_utils.h"
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 #include <pcap/pcap.h>
+#include <pcap/sll.h>
+
+#ifdef __linux__
+#define ARPHRD_FRELAY ARPHRD_DLCI
+#define ARPHRD_IEEE1394_EUI64 ARPHRD_IEEE1394
+#define ARPOP_REVREQUEST                                                       \
+  ARPOP_RREQUEST /* request protocol address given hardware */
+#define ARPOP_REVREPLY ARPOP_RREPLY      /* response giving protocol address */
+#define ARPOP_INVREQUEST ARPOP_InREQUEST /* request to identify peer */
+#define ARPOP_INVREPLY ARPOP_InREPLY     /* response identifying peer */
+#endif
 
 /* If the value is higher than 0x0600, it is an EtherType (Ethernet II),
  * otherwise it is a length corresponding to a IEEE 802.3 Frame
@@ -66,10 +76,10 @@ extern arp_protocol_t *arp_protocols;
 
 ether_type_t get_ether_type_name(u_short ether_value);
 u_short print_ethernet_header(const struct ether_header *ethernet,
-                              bpf_u_int32 len, enum verbosity_level verbosity);
-u_short print_loopback_header(const struct bsd_loopback_hdr *lo,
-                              enum verbosity_level verbosity);
+                              bpf_u_int32 len);
+u_short print_loopback_header(const struct bsd_loopback_hdr *lo);
+u_short print_linux_cooked_header(const struct sll2_header *sll2);
 void print_arp_header(const struct arphdr *arp);
-void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity);
+void print_arp_frame(const struct arphdr *arp);
 
 #endif  // SRC_PROTOCOLS_DATA_LINK_H_

@@ -1,3 +1,4 @@
+#include "../capture/capture_utils.h"
 #include "data-link.h"
 #include <net/if_arp.h>
 #include <pcap/pcap.h>
@@ -5,6 +6,8 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+
+extern enum verbosity_level verbosity;
 
 ether_type_t ether_types[] = {
     {ETHERTYPE_IP, "IPv4"},           {ETHERTYPE_IPV6, "IPv6"},
@@ -31,7 +34,7 @@ get_name_value_pair(u_short type, struct name_value_pair_t *name_value_pairs,
 }
 
 u_short print_ethernet_header(const struct ether_header *ethernet,
-                              bpf_u_int32 len, enum verbosity_level verbosity) {
+                              bpf_u_int32 len) {
   struct name_value_pair_t name_value_pair = {0, NULL};
   bool is_802_3 = htons(ethernet->ether_type) <= ETH_FRAME_TYPE_THRESHOLD;
 
@@ -75,8 +78,7 @@ bsd_lo_protocol_t bsd_lo_protocols[] = {
     {LOOPBACK_OSI, "OSI"},    {LOOPBACK_IPX, "IPX"},
 };
 
-u_short print_loopback_header(const struct bsd_loopback_hdr *lo,
-                              enum verbosity_level verbosity) {
+u_short print_loopback_header(const struct bsd_loopback_hdr *lo) {
   size_t lo_p_len = sizeof(bsd_lo_protocols) / sizeof(bsd_lo_protocols[0]);
   struct name_value_pair_t name_value_pair = get_name_value_pair(
       lo->protocol_type, (struct name_value_pair_t *)bsd_lo_protocols,
@@ -85,6 +87,19 @@ u_short print_loopback_header(const struct bsd_loopback_hdr *lo,
   printf(" %s", name_value_pair.name);
   if (verbosity == HIGH)
     printf(" (%d)", lo->protocol_type);
+
+  return name_value_pair.value;
+}
+
+u_short print_linux_cooked_header(const struct sll2_header *sll2) {
+  size_t ether_types_len = sizeof(ether_types) / sizeof(ether_types[0]);
+  struct name_value_pair_t name_value_pair = get_name_value_pair(
+      htons(sll2->sll2_protocol), (struct name_value_pair_t *)ether_types,
+      ether_types_len);
+
+  printf(" %s", name_value_pair.name);
+  if (verbosity == HIGH)
+    printf(" (%d)", sll2->sll2_protocol);
 
   return name_value_pair.value;
 }
@@ -124,7 +139,7 @@ void print_arp_header(const struct arphdr *arp) {
 }
 
 /* https://people.computing.clemson.edu/~westall/853/notes/arprecv.pdf */
-void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity) {
+void print_arp_frame(const struct arphdr *arp) {
   u_short arp_operation = ntohs(arp->ar_op);
 
   if (verbosity >= MEDIUM)

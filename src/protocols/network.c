@@ -1,3 +1,4 @@
+#include "../capture/capture_utils.h"
 #include "../capture/packet_utils.h"
 #include "../utils/utils.h"
 #include "network.h"
@@ -10,26 +11,27 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
+extern enum verbosity_level verbosity;
+
 /* Print the encapsulated protocol of an IP or IPv6 frame
  * TODO: Not happy with the way the len is managed, sometimes transformed into
  * 32 bits words, sometimes not, have to make it predictable instead of having
  * to think of the format of whats passed down to the lower functions, maybe
  * through explicit names ? */
 void print_ip_or_ip6_encapsulated_protocol(const void *header, u_char protocol,
-                                           uint16_t len,
-                                           enum verbosity_level verbosity) {
+                                           uint16_t len) {
   switch (protocol) {
   case IPPROTO_TCP:
-    print_tcp_frame((const struct tcphdr *)header, verbosity);
+    print_tcp_frame((const struct tcphdr *)header);
     break;
   case IPPROTO_UDP:
-    print_udp_frame((const struct udphdr *)header, verbosity);
+    print_udp_frame((const struct udphdr *)header);
     break;
   case IPPROTO_ICMP:
-    print_icmp_frame((const struct icmp *)header, len, verbosity);
+    print_icmp_frame((const struct icmp *)header, len);
     break;
   case IPPROTO_ICMPV6:
-    print_icmp6_frame((const struct icmp6_hdr *)header, len, verbosity);
+    print_icmp6_frame((const struct icmp6_hdr *)header, len);
     break;
   case IPPROTO_IGMP:
   default:
@@ -37,7 +39,7 @@ void print_ip_or_ip6_encapsulated_protocol(const void *header, u_char protocol,
   }
 }
 
-void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity) {
+void print_ip_frame(const struct ip *ip) {
   if (verbosity >= MEDIUM) {
     printf(" (");
     if (verbosity == HIGH) {
@@ -84,11 +86,10 @@ void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity) {
    * in host byte order
    */
   print_ip_or_ip6_encapsulated_protocol(
-      ip + 1, ip->ip_p, ntohs(htons(ip->ip_len) / 2 - ip->ip_hl), verbosity);
+      ip + 1, ip->ip_p, ntohs(htons(ip->ip_len) / 2 - ip->ip_hl));
 }
 
-void print_ip6_frame(const struct ip6_hdr *ip6,
-                     enum verbosity_level verbosity) {
+void print_ip6_frame(const struct ip6_hdr *ip6) {
   if (verbosity >= MEDIUM) {
     printf(" (flowlabel 0x%x",
            htonl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow & IPV6_FLOWLABEL_MASK));
@@ -120,13 +121,12 @@ void print_ip6_frame(const struct ip6_hdr *ip6,
   /* Now we can take care of printing the encapsulated protocol, the IPv6
    * payload
    * TODO: Take care of the length appropriately */
-  print_ip_or_ip6_encapsulated_protocol(
-      ip6 + 1, ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt,
-      ip6->ip6_ctlun.ip6_un1.ip6_un1_plen, verbosity);
+  print_ip_or_ip6_encapsulated_protocol(ip6 + 1,
+                                        ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt,
+                                        ip6->ip6_ctlun.ip6_un1.ip6_un1_plen);
 }
 
-void print_icmp_frame(const struct icmp *icmp, uint16_t len,
-                      enum verbosity_level verbosity) {
+void print_icmp_frame(const struct icmp *icmp, uint16_t len) {
   printf(": ICMP");
 
   switch (icmp->icmp_type) {
@@ -149,8 +149,7 @@ void print_icmp_frame(const struct icmp *icmp, uint16_t len,
            validate_checksum(NULL, icmp, htons(len)) ? "incorrect" : "correct");
 }
 
-void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len,
-                       enum verbosity_level verbosity) {
+void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len) {
   char buf[INET6_ADDRSTRLEN];
   union icmp6_un icmp6_un;
 

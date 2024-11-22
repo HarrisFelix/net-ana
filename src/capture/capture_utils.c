@@ -1,4 +1,5 @@
 #include "capture_utils.h"
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <net/ethernet.h>
 #include <pcap.h>
@@ -8,16 +9,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/_endian.h>
-#include <sys/_types/_u_char.h>
 #include <time.h>
 
+enum verbosity_level verbosity;
 extern char const *program_name;
 extern pcap_t *handle;
 extern u_int captured_packets_count;
 
-void init_message(char *interface, char *file, bool defaulting,
-                  enum verbosity_level verbosity) {
+void init_message(char *interface, char *file, bool defaulting) {
   int data_link = pcap_datalink(handle);
 
   if (defaulting)

@@ -1,5 +1,8 @@
+#include "../capture/capture_utils.h"
 #include "transport.h"
 #include <stdio.h>
+
+extern enum verbosity_level verbosity;
 
 struct ports get_ports(const void *header, u_char protocol) {
   if (protocol == IPPROTO_TCP) {
@@ -15,7 +18,7 @@ struct ports get_ports(const void *header, u_char protocol) {
   }
 }
 
-void print_tcp_frame(const struct tcphdr *tcp, enum verbosity_level verbosity) {
+void print_tcp_frame(const struct tcphdr *tcp) {
   printf(": TCP");
 
   struct ports ports = get_ports(tcp, IPPROTO_UDP);
@@ -23,7 +26,7 @@ void print_tcp_frame(const struct tcphdr *tcp, enum verbosity_level verbosity) {
   if (verbosity == NONE)
     return;
 }
-void print_udp_frame(const struct udphdr *udp, enum verbosity_level verbosity) {
+void print_udp_frame(const struct udphdr *udp) {
   printf(": UDP");
 
   struct ports ports = get_ports(udp, IPPROTO_UDP);

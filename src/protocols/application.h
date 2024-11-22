@@ -4,8 +4,8 @@
 #define SRC_PROTOCOLS_APPLICATION_H_
 
 #include <stdint.h>
-#include <sys/_types/_u_char.h>
 #define BOOTP 1
+typedef uint8_t u_char;
 
 void get_application_protocol(const void *header, u_char protocol);
 

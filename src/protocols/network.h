@@ -3,12 +3,16 @@
 #ifndef SRC_PROTOCOLS_NETWORK_H_
 #define SRC_PROTOCOLS_NETWORK_H_
 
-#include "../capture/capture_utils.h"
 #include <netinet/icmp6.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/ip_icmp.h>
 #include <stdint.h>
+
+#ifdef __linux__
+#define IPV6_FLOWLABEL_MASK 0xffff0f00
+#define ND_RA_FLAG_HA ND_RA_FLAG_HOME_AGENT
+#endif
 
 struct pseudo_ip6_hdr {
   struct in6_addr ip6_src; /* source address */
@@ -26,14 +30,11 @@ union icmp6_un {
 };
 
 void print_ip_or_ip6_encapsulated_protocol(const void *header, u_char protocol,
-                                           uint16_t len,
-                                           enum verbosity_level verbosity);
-void print_ip_frame(const struct ip *ip, enum verbosity_level verbosity);
-void print_ip6_frame(const struct ip6_hdr *ip6, enum verbosity_level verbosity);
-void print_icmp_frame(const struct icmp *icmp, uint16_t len,
-                      enum verbosity_level verbosity);
-void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len,
-                       enum verbosity_level verbosity);
+                                           uint16_t len);
+void print_ip_frame(const struct ip *ip);
+void print_ip6_frame(const struct ip6_hdr *ip6);
+void print_icmp_frame(const struct icmp *icmp, uint16_t len);
+void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len);
 void set_pseudo_ip6_hdr(struct pseudo_ip6_hdr *pseudo_ip6,
                         const struct in6_addr src, const struct in6_addr dst,
                         uint16_t plen, uint8_t nxt);

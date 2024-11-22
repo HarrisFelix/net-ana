@@ -9,22 +9,21 @@
 #include <netinet/ip6.h>
 #include <pcap.h>
 #include <pcap/pcap.h>
+#include <pcap/sll.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 extern char const *program_name;
+extern enum verbosity_level verbosity;
 pcap_t *handle;
 u_int captured_packets_count = 0;
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
                 const u_char *packet) {
   /* Define packet handling related structures. */
-  struct pcap_handler_args *packet_args = (struct pcap_handler_args *)args;
-  const struct ip *ip;
-  const struct ip6_hdr *ip6;
-  const struct arphdr *arp;
   u_short protocol;
   u_int size_header;
 
@@ -35,21 +34,25 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   case DLT_EN10MB:
     /* EtherType or LSAP value */
     size_header = sizeof(struct ether_header);
-    protocol = print_ethernet_header((const struct ether_header *)packet,
-                                     header->len, packet_args->verbosity);
+    protocol =
+        print_ethernet_header((const struct ether_header *)packet, header->len);
     break;
   case DLT_NULL:
     /* BSD Loopback protocol */
     size_header = sizeof(struct bsd_loopback_hdr);
-    protocol = print_loopback_header((const struct bsd_loopback_hdr *)packet,
-                                     packet_args->verbosity);
+    protocol = print_loopback_header((const struct bsd_loopback_hdr *)packet);
+    break;
   case DLT_RAW:
+    /* RAW IP Frame */
     size_header = 0;
     protocol = (packet[0] >> 4) == 4 ? ETHERTYPE_IP : ETHERTYPE_IPV6;
     printf(" RAW IPv%c", protocol == ETHERTYPE_IP ? '4' : '6');
     break;
   case DLT_LINUX_SLL2:
-    printf(" Linux Cooked Capture Unsupported");
+    /* Linux Cooked Capture 2 */
+    /* TODO: Complete support for Linux Cooked Capture */
+    size_header = sizeof(struct sll2_header);
+    protocol = print_linux_cooked_header((const struct sll2_header *)packet);
     break;
   }
 
@@ -57,19 +60,16 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   switch (protocol) {
   case ETHERTYPE_IP:
   case LOOPBACK_IP:
-    ip = (struct ip *)(packet + size_header);
-    print_ip_frame(ip, packet_args->verbosity);
+    print_ip_frame((struct ip *)(packet + size_header));
     break;
   case ETHERTYPE_IPV6:
   case LOOPBACK_IP6_1:
   case LOOPBACK_IP6_2:
   case LOOPBACK_IP6_3:
-    ip6 = (struct ip6_hdr *)(packet + size_header);
-    print_ip6_frame(ip6, packet_args->verbosity);
+    print_ip6_frame((struct ip6_hdr *)(packet + size_header));
     break;
   case ETHERTYPE_ARP:
-    arp = (struct arphdr *)(packet + size_header);
-    print_arp_frame(arp, packet_args->verbosity);
+    print_arp_frame((struct arphdr *)(packet + size_header));
     break;
   }
 
@@ -77,16 +77,18 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   printf(", length %d", header->len - size_header);
 
   /* Print the bytes and ASCII of the packet. */
-  if (packet_args->verbosity == HIGH)
+  if (verbosity == HIGH)
     print_packet_bytes(packet, header->caplen);
 
   printf("\n");
   captured_packets_count++;
 }
 
-void capture_loop(char *interface, char *file, char *filter, u_int verbosity) {
+void capture_loop(char *interface, char *file, char *filter,
+                  u_int verbose_output) {
   char errbuf[PCAP_ERRBUF_SIZE];
   bool defaulting = (bool)(!interface && !file);
+  verbosity = verbose_output;
 
   /* Filter related */
   struct bpf_program fp; /* The compiled filter expression */
@@ -126,11 +128,10 @@ void capture_loop(char *interface, char *file, char *filter, u_int verbosity) {
   }
 
   /* Pretty print to show which interface or file we are sniffing */
-  init_message(interface, file, defaulting, verbosity);
+  init_message(interface, file, defaulting);
 
   /* Bulk of the program */
-  struct pcap_handler_args args = {verbosity};
-  pcap_loop(handle, 0, got_packet, (u_char *)&args);
+  pcap_loop(handle, 0, got_packet, NULL);
 
   /* Clean up */
   pcap_freecode(&fp);
