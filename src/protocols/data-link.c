@@ -7,10 +7,8 @@
 #include <string.h>
 
 ether_type_t ether_types[] = {
-    {ETHERTYPE_IP, "IP"},
-    {ETHERTYPE_IPV6, "IP6"},
-    {ETHERTYPE_ARP, "ARP"},
-    {ETHERTYPE_REVARP, "RARP"},
+    {ETHERTYPE_IP, "IPv4"},           {ETHERTYPE_IPV6, "IPv6"},
+    {ETHERTYPE_ARP, "ARP"},           {ETHERTYPE_REVARP, "RARP"},
     {ETHERTYPE_LOOPBACK, "Loopback"},
 };
 
@@ -23,15 +21,13 @@ lsap_t lsaps[] = {
 struct name_value_pair_t
 get_name_value_pair(u_short type, struct name_value_pair_t *name_value_pairs,
                     size_t len) {
-  u_short big_endian_value = htons(type);
-
-  for (int i = 0; i < len; i++) {
-    if (name_value_pairs[i].value == big_endian_value) {
+  for (uint i = 0; i < len; i++) {
+    if (name_value_pairs[i].value == type) {
       return name_value_pairs[i];
     }
   }
 
-  return (struct name_value_pair_t){big_endian_value, "UNKNOWN"};
+  return (struct name_value_pair_t){type, "UNKNOWN"};
 }
 
 u_short print_ethernet_header(const struct ether_header *ethernet,
@@ -43,7 +39,7 @@ u_short print_ethernet_header(const struct ether_header *ethernet,
     /* https://en.wikipedia.org/wiki/EtherType */
     size_t ether_types_len = sizeof(ether_types) / sizeof(ether_types[0]);
     name_value_pair = get_name_value_pair(
-        ethernet->ether_type, (struct name_value_pair_t *)ether_types,
+        htons(ethernet->ether_type), (struct name_value_pair_t *)ether_types,
         ether_types_len);
   } else {
     size_t lsaps_len = sizeof(lsaps) / sizeof(lsaps[0]);
@@ -68,9 +64,27 @@ u_short print_ethernet_header(const struct ether_header *ethernet,
 
   printf(" %s", name_value_pair.name);
   if (verbosity == HIGH)
-    printf("%s (0x%04x), length %d",
-           name_value_pair.value == ETHERTYPE_IP ? "v4" : "",
-           name_value_pair.value, len);
+    printf(" (0x%04x), length %d", name_value_pair.value, len);
+
+  return name_value_pair.value;
+}
+
+bsd_lo_protocol_t bsd_lo_protocols[] = {
+    {LOOPBACK_IP, "IPv4"},    {LOOPBACK_IP6_1, "IPv6"},
+    {LOOPBACK_IP6_2, "IPv6"}, {LOOPBACK_IP6_3, "IPv6"},
+    {LOOPBACK_OSI, "OSI"},    {LOOPBACK_IPX, "IPX"},
+};
+
+u_short print_loopback_header(const struct bsd_loopback_hdr *lo,
+                              enum verbosity_level verbosity) {
+  size_t lo_p_len = sizeof(bsd_lo_protocols) / sizeof(bsd_lo_protocols[0]);
+  struct name_value_pair_t name_value_pair = get_name_value_pair(
+      lo->protocol_type, (struct name_value_pair_t *)bsd_lo_protocols,
+      lo_p_len);
+
+  printf(" %s", name_value_pair.name);
+  if (verbosity == HIGH)
+    printf(" (%d)", lo->protocol_type);
 
   return name_value_pair.value;
 }
@@ -91,7 +105,7 @@ void print_arp_header(const struct arphdr *arp) {
   /* Print hardware related data */
   size_t arp_hardwares_len = sizeof(arp_hardwares) / sizeof(arp_hardwares[0]);
   arp_hardware_t arp_hardware = get_name_value_pair(
-      arp->ar_hrd, (struct name_value_pair_t *)arp_hardwares,
+      htons(arp->ar_hrd), (struct name_value_pair_t *)arp_hardwares,
       arp_hardwares_len);
 
   printf(", %s (len %u)", arp_hardware.name, arp->ar_hln);
@@ -138,6 +152,7 @@ void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity) {
   // https://stackoverflow.com/questions/4736718/mac-addresspad-missing-left-zeros
   // What's oui Unknown? Maybe set a struct to support the most common oui
   // https://www.secureideas.com/blog/of-mac-addresses-and-oui-a-subtle-but-useful-recon-resource
+  /* FIXME: inet_ntoa deprecated, replace occurrences with ntop */
   switch (arp_operation) {
   case ARPOP_REQUEST:
     printf(", %s", is_gratuitous ? "Announcement" : "Request");

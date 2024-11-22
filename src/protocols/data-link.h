@@ -21,6 +21,15 @@
 #define LSAP_SNAP 0xAAAA
 #define LSAP_NULL 0x0000
 
+/* Loopback protocols can have multiple values that are equivalent to a single
+ * EtherType */
+#define LOOPBACK_IP 2
+#define LOOPBACK_IP6_1 24
+#define LOOPBACK_IP6_2 28
+#define LOOPBACK_IP6_3 30
+#define LOOPBACK_OSI 7
+#define LOOPBACK_IPX 23
+
 struct name_value_pair_t {
   u_short value;
   const char *name;
@@ -34,6 +43,14 @@ extern ether_type_t ether_types[];
 /* https://en.wikipedia.org/wiki/IEEE_802.2#LSAP_values */
 typedef struct name_value_pair_t lsap_t;
 extern lsap_t lsaps[];
+
+/* https://www.tcpdump.org/linktypes/LINKTYPE_NULL.html */
+struct bsd_loopback_hdr {
+  u_int32_t protocol_type;
+};
+
+typedef struct name_value_pair_t bsd_lo_protocol_t;
+extern bsd_lo_protocol_t bsd_lo_protocols[];
 
 /* Allows us to keep semantical meaning even if the structs are identical */
 typedef struct name_value_pair_t arp_hardware_t;
@@ -50,6 +67,8 @@ extern arp_protocol_t *arp_protocols;
 ether_type_t get_ether_type_name(u_short ether_value);
 u_short print_ethernet_header(const struct ether_header *ethernet,
                               bpf_u_int32 len, enum verbosity_level verbosity);
+u_short print_loopback_header(const struct bsd_loopback_hdr *lo,
+                              enum verbosity_level verbosity);
 void print_arp_header(const struct arphdr *arp);
 void print_arp_frame(const struct arphdr *arp, enum verbosity_level verbosity);
 

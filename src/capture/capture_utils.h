@@ -4,18 +4,19 @@
 #define SRC_CAPTURE_CAPTURE_UTILS_H_
 
 #include <pcap.h>
+#include <stdbool.h>
 #include <stdint.h>
+
+#define SNAPLEN 65535
 
 enum verbosity_level { NONE, LOW, MEDIUM, HIGH };
 
+void init_message(char *interface, char *file, bool defaulting,
+                  enum verbosity_level verbosity);
+void apply_bpf_filter(char *interface, struct bpf_program *fp,
+                      bpf_u_int32 *mask, bpf_u_int32 *net, char *filter);
 char *custom_lookupdev();
 void print_devices();
-
-void print_payload();
-void print_frame();
 void print_live_capture_summary();
-void print_timestamp(const struct pcap_pkthdr *header);
-void print_packet_bytes(const u_char *packet, uint len);
-uint16_t validate_checksum(const void *packet, uint len);
 
 #endif  // SRC_CAPTURE_CAPTURE_UTILS_H_

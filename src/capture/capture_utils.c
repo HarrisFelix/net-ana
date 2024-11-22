@@ -16,6 +16,51 @@ extern char const *program_name;
 extern pcap_t *handle;
 extern u_int captured_packets_count;
 
+void init_message(char *interface, char *file, bool defaulting,
+                  enum verbosity_level verbosity) {
+  int data_link = pcap_datalink(handle);
+
+  if (defaulting)
+    printf("%s: defaulting to data link type %s\n", program_name,
+           pcap_datalink_val_to_name(data_link));
+
+  if (!verbosity)
+    printf("%s: verbose output suppressed, use -v[v]... for full protocol "
+           "decode\n",
+           program_name);
+
+  if (interface) {
+    printf("Listening on %s, link-type %s (%s), snapshot length %d bytes\n",
+           interface, pcap_datalink_val_to_name(data_link),
+           pcap_datalink_val_to_description(data_link), SNAPLEN);
+  } else {
+    printf("Reading from file %s, link-type %s (%s)\n", file,
+           pcap_datalink_val_to_name(data_link),
+           pcap_datalink_val_to_description(data_link));
+  }
+}
+
+void apply_bpf_filter(char *interface, struct bpf_program *fp,
+                      bpf_u_int32 *mask, bpf_u_int32 *net, char *filter) {
+  char errbuf[PCAP_ERRBUF_SIZE];
+
+  if (pcap_lookupnet(interface, net, mask, errbuf) == PCAP_ERROR) {
+    fprintf(stderr, "%s: couldn't get netmask for device %s: %s\n",
+            program_name, interface, errbuf);
+    *net = 0;
+    *mask = 0;
+  }
+
+  if (pcap_compile(handle, fp, filter, 0, *net) == PCAP_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_name, pcap_geterr(handle));
+    exit(EXIT_FAILURE);
+  }
+  if (pcap_setfilter(handle, fp) == PCAP_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_name, pcap_geterr(handle));
+    exit(EXIT_FAILURE);
+  }
+}
+
 char *custom_lookupdev() {
   char errbuf[PCAP_ERRBUF_SIZE];
   char *interface = NULL;
@@ -86,63 +131,4 @@ void print_devices() {
   }
 
   pcap_freealldevs(alldevs);
-}
-
-/* https://stackoverflow.com/questions/2408976/struct-timeval-to-printable-format
- */
-void print_timestamp(const struct pcap_pkthdr *header) {
-  time_t nowtime;
-  struct tm *nowtm;
-  char tmbuf[64], buf[64];
-
-  nowtime = header->ts.tv_sec;
-  nowtm = localtime(&nowtime);
-  strftime(tmbuf, sizeof tmbuf, "%H:%M:%S", nowtm);
-  snprintf(buf, sizeof buf, "%s.%06d", tmbuf, header->ts.tv_usec);
-  printf("[%s]", buf);
-}
-
-void print_packet_bytes(const u_char *packet, uint len) {
-  for (int i = 0; i < len; i++) {
-    /* HEX */
-    if (i % 16 == 0)
-      printf("\n\t0x%04x: ", i);
-    if (i % 2 == 0)
-      printf(" %02x", packet[i]);
-    else
-      printf("%02x", packet[i]);
-
-    /* ASCII */
-    if ((i + 1) % 16 == 0 || i == len - 1) {
-      /* Some explanation, a typical HEX block would be " 0000" and would be
-       * comprised of 2 bytes, so each byte occupy half the length of that,
-       * which is 2.5 We multiply the length occupied by a byte by the number of
-       * bytes left we need to fill row */
-      int padding = ((16 - ((i + 1) % 16)) % 16) * 2.5;
-      printf(" %*s ", padding, "");
-
-      /* Replace the cursor at the start of the line */
-      for (int j = i - (i % 16); j <= i; j++) {
-        if (isprint(packet[j]))
-          printf("%c", packet[j]);
-        else
-          printf(".");
-      }
-    }
-  }
-}
-
-/* https://datatracker.ietf.org/doc/html/rfc1071
- * Little endian implementation of a checksum */
-uint16_t validate_checksum(const void *packet, uint len) {
-  uint32_t sum = 0;
-
-  /* len is the number of 32-bit words, so we multiply it by two to get the
-   * number of 16-bit words */
-  for (uint i = 0; i < len * 2; i++) {
-    sum += htons(((uint16_t *)packet)[i]);
-  }
-
-  /* Bit manipiulation to add the carry and not consider it in the compkement */
-  return (uint16_t)~(sum + (sum >> 16) & 0xffff);
 }

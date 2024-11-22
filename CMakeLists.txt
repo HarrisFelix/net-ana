@@ -11,7 +11,7 @@ include_directories(include)
 file(GLOB_RECURSE SOURCES "src/*.c")
 
 # Set default compile options
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -march=native -O3")
 
 # Create the executable from the source files
 add_executable(analyzer ${SOURCES})
