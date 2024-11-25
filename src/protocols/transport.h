@@ -12,6 +12,7 @@ struct ports {
 };
 
 struct ports get_ports(const void *header, u_char protocol);
+void print_tcp_flags(uint8_t flags);
 void print_tcp_frame(const struct tcphdr *tcp);
 void print_udp_frame(const struct udphdr *udp);
 

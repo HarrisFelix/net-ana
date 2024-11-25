@@ -14,6 +14,14 @@
 #define ND_RA_FLAG_HA ND_RA_FLAG_HOME_AGENT
 #endif
 
+struct pseudo_ip_hdr {
+  struct in_addr ip_src; /* source address */
+  struct in_addr ip_dst; /* destination address */
+  uint8_t zero;          /* zero byte */
+  uint8_t ip_p;          /* protocol */
+  uint16_t tcp_len;      /* TCP header and payload length */
+} __attribute__((packed));
+
 struct pseudo_ip6_hdr {
   struct in6_addr ip6_src; /* source address */
   struct in6_addr ip6_dst; /* destination address */
@@ -35,6 +43,9 @@ void print_ip_frame(const struct ip *ip);
 void print_ip6_frame(const struct ip6_hdr *ip6);
 void print_icmp_frame(const struct icmp *icmp, uint16_t len);
 void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len);
+void set_pseudo_ip_hdr(struct pseudo_ip_hdr *pseudo_ip,
+                       const struct in_addr src, const struct in_addr dst,
+                       uint8_t protocol, uint16_t tcp_len);
 void set_pseudo_ip6_hdr(struct pseudo_ip6_hdr *pseudo_ip6,
                         const struct in6_addr src, const struct in6_addr dst,
                         uint16_t plen, uint8_t nxt);

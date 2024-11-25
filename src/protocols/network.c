@@ -91,18 +91,16 @@ void print_ip_frame(const struct ip *ip) {
 
 void print_ip6_frame(const struct ip6_hdr *ip6) {
   if (verbosity >= MEDIUM) {
-    printf(" (flowlabel 0x%x",
-           htonl(ip6->ip6_ctlun.ip6_un1.ip6_un1_flow & IPV6_FLOWLABEL_MASK));
-    printf(", hlim %d", htons(ip6->ip6_ctlun.ip6_un1.ip6_un1_hlim));
+    printf(" (flowlabel 0x%x", htonl(ip6->ip6_flow & IPV6_FLOWLABEL_MASK));
+    printf(", hlim %d", htons(ip6->ip6_hlim));
     printf(", next-header %s (%d)",
-           string_to_upper(
-               getprotobynumber(ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt)->p_name),
-           ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt);
-    printf(", payload length: %d)", htons(ip6->ip6_ctlun.ip6_un1.ip6_un1_plen));
+           string_to_upper(getprotobynumber(ip6->ip6_nxt)->p_name),
+           ip6->ip6_nxt);
+    printf(", payload length: %d)", htons(ip6->ip6_plen));
   }
 
   /* Same logic as the IPv4 frame */
-  struct ports ports = get_ports(ip6 + 1, ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt);
+  struct ports ports = get_ports(ip6 + 1, ip6->ip6_nxt);
   char hbuf[NI_MAXHOST];
 
   /* Source */
@@ -121,9 +119,7 @@ void print_ip6_frame(const struct ip6_hdr *ip6) {
   /* Now we can take care of printing the encapsulated protocol, the IPv6
    * payload
    * TODO: Take care of the length appropriately */
-  print_ip_or_ip6_encapsulated_protocol(ip6 + 1,
-                                        ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt,
-                                        ip6->ip6_ctlun.ip6_un1.ip6_un1_plen);
+  print_ip_or_ip6_encapsulated_protocol(ip6 + 1, ip6->ip6_nxt, ip6->ip6_plen);
 }
 
 void print_icmp_frame(const struct icmp *icmp, uint16_t len) {
@@ -141,8 +137,7 @@ void print_icmp_frame(const struct icmp *icmp, uint16_t len) {
     printf(", type %d", icmp->icmp_type);
   }
 
-  printf(", id %d, seq %d", htons(icmp->icmp_hun.ih_idseq.icd_id),
-         htons(icmp->icmp_hun.ih_idseq.icd_seq));
+  printf(", id %d, seq %d", htons(icmp->icmp_id), htons(icmp->icmp_seq));
 
   if (verbosity >= MEDIUM)
     printf(", cksum 0x%04x (%s)", htons(icmp->icmp_cksum),
@@ -235,6 +230,16 @@ void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len) {
 
   if (verbosity >= MEDIUM)
     return;
+}
+
+void set_pseudo_ip_hdr(struct pseudo_ip_hdr *pseudo_ip,
+                       const struct in_addr src, const struct in_addr dst,
+                       uint8_t protocol, uint16_t tcp_len) {
+  pseudo_ip->ip_src = src;
+  pseudo_ip->ip_dst = dst;
+  pseudo_ip->zero = 0;
+  pseudo_ip->ip_p = protocol;
+  pseudo_ip->tcp_len = tcp_len;
 }
 
 void set_pseudo_ip6_hdr(struct pseudo_ip6_hdr *pseudo_ip6,
