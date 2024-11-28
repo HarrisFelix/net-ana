@@ -1,5 +1,9 @@
-#include "../protocols/data-link.h"
-#include "../protocols/network.h"
+#include "../protocols/data-link/arp/arp.h"
+#include "../protocols/data-link/ethernet/ethernet.h"
+#include "../protocols/data-link/linux-cooked-capture/linux-cooked-capture.h"
+#include "../protocols/data-link/loopback/loopback.h"
+#include "../protocols/network/ip/ip.h"
+#include "../protocols/network/ip6/ip6.h"
 #include "capture.h"
 #include "capture_utils.h"
 #include "packet_utils.h"
@@ -24,7 +28,7 @@ u_int captured_packets_count = 0;
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
                 const u_char *packet) {
   /* Define packet handling related structures. */
-  u_short protocol;
+  uint16_t protocol;
   u_int size_header;
 
   print_timestamp(header);

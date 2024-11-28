@@ -1,111 +1,16 @@
-#include "../capture/capture_utils.h"
-#include "data-link.h"
-#include <net/if_arp.h>
-#include <pcap/pcap.h>
-#include <stdbool.h>
+#include "../../../capture/capture_utils.h"
+#include "../../../utils/utils.h"
+#include "../ethernet/ethernet.h"
+#include "arp.h"
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 extern enum verbosity_level verbosity;
+extern ether_type_t ether_types[];
+extern const size_t ETHERTYPES_LEN;
 
-ether_type_t ether_types[] = {
-    {ETHERTYPE_IP, "IPv4"},           {ETHERTYPE_IPV6, "IPv6"},
-    {ETHERTYPE_ARP, "ARP"},           {ETHERTYPE_REVARP, "RARP"},
-    {ETHERTYPE_LOOPBACK, "Loopback"},
-};
-
-lsap_t lsaps[] = {
-    {LSAP_NULL, "NULL"},
-    {LSAP_ISIS, "IS-IS"},
-    {LSAP_SNAP, "SNAP"},
-};
-
-struct name_value_pair_t
-get_name_value_pair(u_short type, struct name_value_pair_t *name_value_pairs,
-                    size_t len) {
-  for (uint i = 0; i < len; i++) {
-    if (name_value_pairs[i].value == type) {
-      return name_value_pairs[i];
-    }
-  }
-
-  return (struct name_value_pair_t){type, "UNKNOWN"};
-}
-
-u_short print_ethernet_header(const struct ether_header *ethernet,
-                              bpf_u_int32 len) {
-  struct name_value_pair_t name_value_pair = {0, NULL};
-  bool is_802_3 = htons(ethernet->ether_type) <= ETH_FRAME_TYPE_THRESHOLD;
-
-  if (!is_802_3) {
-    /* https://en.wikipedia.org/wiki/EtherType */
-    size_t ether_types_len = sizeof(ether_types) / sizeof(ether_types[0]);
-    name_value_pair = get_name_value_pair(
-        htons(ethernet->ether_type), (struct name_value_pair_t *)ether_types,
-        ether_types_len);
-  } else {
-    size_t lsaps_len = sizeof(lsaps) / sizeof(lsaps[0]);
-    /* Explaining the pointer logic, we're looking at the memory right after the
-     * traditional EtherType field which here actually contains a length since
-     * it's IEEE 802.3, we could have defined a struct to make it more obvious
-     * but since it's the only time we're doing something like that...
-     */
-    name_value_pair =
-        get_name_value_pair(*(u_short *)(ethernet + 1),
-                            (struct name_value_pair_t *)lsaps, lsaps_len);
-  }
-
-  if (verbosity == HIGH) {
-    printf(" %s >",
-           ether_ntoa((const struct ether_addr *)&ethernet->ether_shost));
-    printf(" %s,",
-           ether_ntoa((const struct ether_addr *)&ethernet->ether_dhost));
-    printf(" %s", !is_802_3 ? "ethertype" : "IEEE 802.3,");
-    printf("%s", name_value_pair.value == LSAP_ISIS ? " OSI" : "");
-  }
-
-  printf(" %s", name_value_pair.name);
-  if (verbosity == HIGH)
-    printf(" (0x%04x), length %d", name_value_pair.value, len);
-
-  return name_value_pair.value;
-}
-
-bsd_lo_protocol_t bsd_lo_protocols[] = {
-    {LOOPBACK_IP, "IPv4"},    {LOOPBACK_IP6_1, "IPv6"},
-    {LOOPBACK_IP6_2, "IPv6"}, {LOOPBACK_IP6_3, "IPv6"},
-    {LOOPBACK_OSI, "OSI"},    {LOOPBACK_IPX, "IPX"},
-};
-
-u_short print_loopback_header(const struct bsd_loopback_hdr *lo) {
-  size_t lo_p_len = sizeof(bsd_lo_protocols) / sizeof(bsd_lo_protocols[0]);
-  struct name_value_pair_t name_value_pair = get_name_value_pair(
-      lo->protocol_type, (struct name_value_pair_t *)bsd_lo_protocols,
-      lo_p_len);
-
-  printf(" %s", name_value_pair.name);
-  if (verbosity == HIGH)
-    printf(" (%d)", lo->protocol_type);
-
-  return name_value_pair.value;
-}
-
-u_short print_linux_cooked_header(const struct sll2_header *sll2) {
-  size_t ether_types_len = sizeof(ether_types) / sizeof(ether_types[0]);
-  struct name_value_pair_t name_value_pair = get_name_value_pair(
-      htons(sll2->sll2_protocol), (struct name_value_pair_t *)ether_types,
-      ether_types_len);
-
-  printf(" %s", name_value_pair.name);
-  if (verbosity == HIGH)
-    printf(" (%d)", sll2->sll2_protocol);
-
-  return name_value_pair.value;
-}
-
-/* Even though we only obverse Ethernet ARP frames,
- * https://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml */
 arp_hardware_t arp_hardwares[] = {
     {ARPHRD_ETHER, "Ethernet"},
     {ARPHRD_IEEE802, "Token-Ring"},
@@ -129,7 +34,7 @@ void print_arp_header(const struct arphdr *arp) {
    * Since we defined the protocols to be the same as the EtherTypes, we can
    * define the len of the protocols table to be the same as the ether_types
    * table, allows us to circumvent the fact that it is a pointer */
-  size_t arp_protocols_len = sizeof(ether_types) / sizeof(ether_types[0]);
+  size_t arp_protocols_len = ETHERTYPES_LEN;
   arp_protocol_t arp_protocol = get_name_value_pair(
       arp->ar_pro, (struct name_value_pair_t *)arp_protocols,
       arp_protocols_len);

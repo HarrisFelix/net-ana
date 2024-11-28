@@ -5,7 +5,7 @@ project(analyzer C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Include directory for public headers
-include_directories(include)
+include_directories(include src src/protocols)
 
 # Find all .c files in src/ and add them to the project
 file(GLOB_RECURSE SOURCES "src/*.c")
