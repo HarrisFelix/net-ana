@@ -13,6 +13,9 @@
  * https://ipcisco.com/lesson/ethernet-basics/ */
 #define ETH_FRAME_TYPE_THRESHOLD 0x0600
 
+/* https://en.wikipedia.org/wiki/EtherType */
+#define ETHERTYPE_DECMOP 0x6002
+
 /* Technically we should apply a mask to look only a the first 7 higher bits to
  * be semantical, and FEFE only corresponds to OSI which could be other
  * protocols such as ES-IS and not directly IS-IS, but I chose to remain simple

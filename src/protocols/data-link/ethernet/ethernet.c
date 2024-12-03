@@ -11,7 +11,7 @@ extern enum verbosity_level verbosity;
 ether_type_t ether_types[] = {
     {ETHERTYPE_IP, "IPv4"},           {ETHERTYPE_IPV6, "IPv6"},
     {ETHERTYPE_ARP, "ARP"},           {ETHERTYPE_REVARP, "RARP"},
-    {ETHERTYPE_LOOPBACK, "Loopback"},
+    {ETHERTYPE_LOOPBACK, "Loopback"}, {ETHERTYPE_DECMOP, "DEC MOP RC"},
 };
 
 const size_t ETHERTYPES_LEN = (sizeof(ether_types) / sizeof(ether_types[0]));
