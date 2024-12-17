@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 extern enum verbosity_level verbosity;
+extern u_int payload_length;
 
 /* Print the encapsulated protocol of an IP frame
  * TODO: Not happy with the way the len is managed, sometimes transformed into
@@ -53,8 +54,9 @@ void print_ip_frame(const struct ip *ip) {
     printf(", proto %s (%d)",
            string_to_upper(getprotobynumber(ip->ip_p)->p_name), ip->ip_p);
     printf(", chksum 0x%04x (%s)", htons(ip->ip_sum),
-           (validate_checksum(NULL, (const void *)ip, ip->ip_hl)) ? "incorrect"
-                                                                  : "correct");
+           (validate_checksum(NULL, false, (const void *)ip, ip->ip_hl))
+               ? "incorrect"
+               : "correct");
     printf(", length %d)", htons(ip->ip_len));
   }
 
@@ -68,6 +70,9 @@ void print_ip_frame(const struct ip *ip) {
   /* Destination */
   inet_ntop(AF_INET, &ip->ip_dst, hbuf, INET_ADDRSTRLEN);
   printf(" %s", hbuf);
+
+  /* Update payload length */
+  payload_length -= ip->ip_hl * 4;
 
   /* Now we can take care of printing the encapsulated protocol, the IP payload,
    * length converted to number of 32-bit words for checksum purposes but kept

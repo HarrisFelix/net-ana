@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 extern enum verbosity_level verbosity;
+extern u_int payload_length;
 
 /* Print the encapsulated protocol of an IP or IPv6 frame
  * TODO: Not happy with the way the len is managed, sometimes transformed into
@@ -51,6 +52,9 @@ void print_ip6_frame(const struct ip6_hdr *ip6) {
   /* Destination */
   inet_ntop(AF_INET6, &ip6->ip6_dst, hbuf, INET6_ADDRSTRLEN);
   printf(" %s", hbuf);
+
+  /* Update the payload length */
+  payload_length = htons(ip6->ip6_plen);
 
   /* Now we can take care of printing the encapsulated protocol, the IPv6
    * payload

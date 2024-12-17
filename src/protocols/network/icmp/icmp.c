@@ -1,6 +1,7 @@
 #include "../../../capture/capture_utils.h"
 #include "../../../capture/packet_utils.h"
 #include "icmp.h"
+#include <stdbool.h>
 #include <stdio.h>
 
 extern enum verbosity_level verbosity;
@@ -24,5 +25,6 @@ void print_icmp_frame(const struct icmp *icmp, uint16_t len) {
 
   if (verbosity >= MEDIUM)
     printf(", cksum 0x%04x (%s)", htons(icmp->icmp_cksum),
-           validate_checksum(NULL, icmp, htons(len)) ? "incorrect" : "correct");
+           validate_checksum(NULL, false, icmp, htons(len)) ? "incorrect"
+                                                            : "correct");
 }

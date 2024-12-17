@@ -1,5 +1,6 @@
 #include "packet_utils.h"
 #include <ctype.h>
+#include <stdint.h>
 
 /* https://stackoverflow.com/questions/2408976/struct-timeval-to-printable-format
  */
@@ -47,14 +48,21 @@ void print_packet_bytes(const u_char *packet, uint len) {
 
 /* https://datatracker.ietf.org/doc/html/rfc1071
  * Little endian implementation of a checksum */
-uint16_t validate_checksum(const void *pseudo_header, const void *packet,
-                           uint num_32bit_words) {
+uint16_t validate_checksum(const void *pseudo_header, bool is_ipv6,
+                           const void *packet, uint num_32bit_words) {
+  uint pseudo_header_len = 20;
   uint32_t sum = 0;
 
-  /* If there's a pseudo IPv6 header, sum it
+  /* Length in 16-bit words */
+  if (is_ipv6)
+    pseudo_header_len = 20;
+  else
+    pseudo_header_len = 6;
+
+  /* If there's a pseudo IPv6 or IPv4 header, sum it
    * Its length is always 10 32-bit words */
   if (pseudo_header) {
-    for (uint i = 0; i < 20; i++) {
+    for (uint i = 0; i < pseudo_header_len; i++) {
       sum += htons(((uint16_t *)pseudo_header)[i]);
     }
   }

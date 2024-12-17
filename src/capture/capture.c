@@ -24,6 +24,7 @@ extern char const *program_name;
 extern enum verbosity_level verbosity;
 pcap_t *handle;
 u_int captured_packets_count = 0;
+u_int payload_length = 0;
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
                 const u_char *packet) {
@@ -60,6 +61,11 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
     break;
   }
 
+  /* Size of the frame without counting the ethernet header, each protocol is
+   * going to remove the size of its header before calling the payload */
+  payload_length = header->len - size_header;
+  printf(", length %d", header->len - size_header);
+
   /* Print the frame according to the protocol */
   switch (protocol) {
   case ETHERTYPE_IP:
@@ -77,8 +83,8 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
     break;
   }
 
-  /* Size of the frame without counting the ethernet header */
-  printf(", length %d", header->len - size_header);
+  /* Payload length */
+  printf(", length %d", payload_length);
 
   /* Print the bytes and ASCII of the packet. */
   if (verbosity == HIGH)

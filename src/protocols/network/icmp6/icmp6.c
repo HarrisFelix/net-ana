@@ -2,6 +2,7 @@
 #include "../../../capture/packet_utils.h"
 #include "../ip6/ip6.h"
 #include "icmp6.h"
+#include <stdbool.h>
 #include <stdio.h>
 
 void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len) {
@@ -20,7 +21,8 @@ void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len) {
                        IPPROTO_ICMPV6);
 
     printf(", cksum 0x%04x (%s)", htons(icmp6->icmp6_cksum),
-           validate_checksum((const void *)&pseudo_ip6, icmp6, htons(len) / 4)
+           validate_checksum((const void *)&pseudo_ip6, true, icmp6,
+                             htons(len) / 4)
                ? "incorrect"
                : "correct");
   }
