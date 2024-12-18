@@ -6,7 +6,7 @@
 extern int payload_length;
 extern enum verbosity_level verbosity;
 
-void print_ftp_frame(const char *smtp) {
+void print_ftp_frame(const char *ftp) {
   printf(": FTP");
 
   if (verbosity >= MEDIUM && payload_length) {
