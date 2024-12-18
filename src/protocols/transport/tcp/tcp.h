@@ -12,6 +12,10 @@
 #define TH_CWR 0x80
 #endif
 
+#ifdef __APPLE__
+#define s6_addr32 __u6_addr.__u6_addr32
+#endif
+
 #define FTP_PORT 21
 #define TELNET_PORT 23
 #define SMTP_PORT 25

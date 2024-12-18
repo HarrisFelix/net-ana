@@ -158,15 +158,11 @@ inline uint32_t tcp_get_session_id(const struct tcphdr *tcp, bool is_ipv6) {
   if (is_ipv6) {
     struct ip6_hdr *ip6 =
         (struct ip6_hdr *)((char *)tcp - sizeof(struct ip6_hdr));
-    return tcp->th_sport ^ tcp->th_dport ^
-           ip6->ip6_src.__u6_addr.__u6_addr32[0] ^
-           ip6->ip6_src.__u6_addr.__u6_addr32[1] ^
-           ip6->ip6_src.__u6_addr.__u6_addr32[2] ^
-           ip6->ip6_src.__u6_addr.__u6_addr32[3] ^
-           ip6->ip6_dst.__u6_addr.__u6_addr32[0] ^
-           ip6->ip6_dst.__u6_addr.__u6_addr32[1] ^
-           ip6->ip6_dst.__u6_addr.__u6_addr32[2] ^
-           ip6->ip6_dst.__u6_addr.__u6_addr32[3] - tcp->th_sport;
+    return tcp->th_sport ^ tcp->th_dport ^ ip6->ip6_src.s6_addr32[0] ^
+           ip6->ip6_src.s6_addr32[1] ^ ip6->ip6_src.s6_addr32[2] ^
+           ip6->ip6_src.s6_addr32[3] ^ ip6->ip6_dst.s6_addr32[0] ^
+           ip6->ip6_dst.s6_addr32[1] ^ ip6->ip6_dst.s6_addr32[2] ^
+           ip6->ip6_dst.s6_addr32[3] - tcp->th_sport;
   } else {
     struct ip *ip = (struct ip *)((char *)tcp - sizeof(struct ip));
     return tcp->th_sport ^ tcp->th_dport ^ ip->ip_src.s_addr ^
