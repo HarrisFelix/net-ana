@@ -7,10 +7,15 @@
 #include <pcap.h>
 #include <stdbool.h>
 
+/* We set an arbitrary value as a do not
+ * print value, in order to delegate the task of printing to the encapsulated
+ * protocol for whatever reason */
+#define LET_ENCAPSULATED_PROTOCOL_PRINT_PAYLOAD_LENGTH -1
+
 extern enum verbosity_level verbosity;
 extern pcap_t *handle;
 extern u_int captured_packets_count;
-extern u_int payload_length;
+extern int payload_length;
 
 void capture_loop(char *interface, char *file, char *filter,
                   u_int verbose_output);

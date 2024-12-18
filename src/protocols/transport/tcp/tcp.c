@@ -1,5 +1,10 @@
 #include "../../../capture/capture_utils.h"
 #include "../../../capture/packet_utils.h"
+#include "../../application/ftp/ftp.h"
+#include "../../application/http/http.h"
+#include "../../application/imap/imap.h"
+#include "../../application/pop3/pop3.h"
+#include "../../application/smtp/smtp.h"
 #include "../../network/ip/ip.h"
 #include "../../network/ip6/ip6.h"
 #include "tcp.h"
@@ -8,8 +13,52 @@
 #include <stdio.h>
 
 extern enum verbosity_level verbosity;
-extern u_int payload_length;
+extern int payload_length;
 struct tcp_session_info tcp_sessions[MAX_N_TCP_SESSIONS] = {0};
+
+void print_tcp_encapsulated_protocol(const struct tcphdr *tcp) {
+  uint16_t src = htons(tcp->th_sport);
+  uint16_t dst = htons(tcp->th_dport);
+
+  /* TODO: Check if we are using TLS */
+
+  if (!match_port_to_protocol(tcp, src))
+    match_port_to_protocol(tcp, dst);
+}
+
+bool match_port_to_protocol(const struct tcphdr *tcp, uint16_t port) {
+  const char *clear_text_tcp_payload =
+      (const char *)tcp + sizeof(struct tcphdr);
+
+  switch (port) {
+  case FTP_PORT:
+    print_ftp_frame(clear_text_tcp_payload);
+    break;
+  case TELNET_PORT:
+    break;
+  case SMTP_PORT:
+    print_smtp_frame(clear_text_tcp_payload);
+    break;
+  case DNS_PORT:
+    break;
+  case HTTP_PORT:
+    print_http_frame(clear_text_tcp_payload, false);
+    break;
+  case HTTP_ALT_PORT:
+    print_http_frame(clear_text_tcp_payload, true);
+    break;
+  case POP3_PORT:
+    print_pop3_frame(clear_text_tcp_payload);
+    break;
+  case IMAP_PORT:
+    print_imap_frame(clear_text_tcp_payload);
+    break;
+  default:
+    return false;
+  }
+
+  return true;
+}
 
 /* https://datatracker.ietf.org/doc/html/rfc9293 */
 void print_tcp_frame(const struct tcphdr *tcp, bool is_ipv6) {
@@ -30,8 +79,11 @@ void print_tcp_frame(const struct tcphdr *tcp, bool is_ipv6) {
   printf(", win %d", htons(tcp->th_win));
   print_tcp_cksum(tcp, is_ipv6);
 
+  print_tcp_options(tcp);
+
   /* Update the payload length */
   payload_length -= tcp->th_off * 4;
+  print_tcp_encapsulated_protocol(tcp);
 }
 
 void print_tcp_flags(uint8_t flags) {
@@ -192,4 +244,72 @@ void print_tcp_cksum(const struct tcphdr *tcp, bool is_ipv6) {
                ? "incorrect"
                : "correct");
   }
+}
+
+void print_tcp_options(const struct tcphdr *tcp) {
+  printf(", options [");
+  const char *delimiter = "";
+  const uint8_t *options = (const uint8_t *)tcp + sizeof(struct tcphdr);
+  int options_len =
+      (tcp->th_off * 4) - sizeof(struct tcphdr);  // Options length
+
+  while (options_len > 0) {
+    uint8_t kind = options[0];
+
+    if (kind == TCPOPT_EOL) {
+      printf("%seol", delimiter);
+      break;
+    } else if (kind == TCPOPT_NOP) {
+      printf("%snop", delimiter);
+      options++;
+      options_len--;
+    } else {
+      if (options_len < 2) {
+        break;
+      }
+
+      uint8_t length = options[1];
+      if (length < 2 || length > options_len) {
+        break;
+      }
+
+      switch (kind) {
+      case TCPOPT_MAXSEG:
+        if (length == TCPOLEN_MAXSEG) {
+          uint16_t mss = (options[2] << 8) | options[3];
+          printf("%smss %u", delimiter, mss);
+        }
+        break;
+      case TCPOPT_WINDOW:
+        if (length == TCPOLEN_WINDOW) {
+          printf("%sws %u", delimiter, options[2]);
+        }
+        break;
+      case TCPOPT_SACK_PERMITTED:
+        if (length == TCPOLEN_SACK_PERMITTED) {
+          printf("%ssack perm", delimiter);
+        }
+        break;
+      case TCPOPT_SACK:
+        printf("%ssack", delimiter);
+        break;
+      case TCPOPT_TIMESTAMP:
+        if (length == TCPOLEN_TIMESTAMP) {
+          const uint32_t *ts_ptr = (const uint32_t *)(options + 2);
+          uint32_t tsval = ntohl(ts_ptr[0]);
+          uint32_t tsecr = ntohl(ts_ptr[1]);
+          printf("%sTS val %u ecr %u", delimiter, tsval, tsecr);
+        }
+        break;
+      default:
+        printf("%sunsupported option %u", delimiter, kind);
+      }
+
+      options += length;
+      options_len -= length;
+    }
+    delimiter = ", ";
+  }
+
+  printf("]");
 }

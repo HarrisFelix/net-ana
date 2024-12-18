@@ -12,6 +12,15 @@
 #define TH_CWR 0x80
 #endif
 
+#define FTP_PORT 21
+#define TELNET_PORT 23
+#define SMTP_PORT 25
+#define DNS_PORT 53
+#define HTTP_PORT 80
+#define HTTP_ALT_PORT 8080
+#define POP3_PORT 110
+#define IMAP_PORT 143
+
 /* For relative sequence and ack number purposes
  * TODO: Make it a dynamically allocated, a linked list would be good */
 #define MAX_N_TCP_SESSIONS 100
@@ -26,6 +35,8 @@ struct tcp_session_info {
 };
 extern struct tcp_session_info tcp_sessions[MAX_N_TCP_SESSIONS];
 
+void print_tcp_encapsulated_protocol(const struct tcphdr *tcp);
+bool match_port_to_protocol(const struct tcphdr *tcp, uint16_t port);
 void print_tcp_frame(const struct tcphdr *tcp, bool is_ipv6);
 void print_tcp_flags(uint8_t flags);
 inline bool tcp_is_session_start(uint8_t flags);
@@ -34,5 +45,6 @@ void get_session_info(const struct tcphdr *tcp,
                       struct tcp_session_info *session, bool is_ipv6);
 void print_seq_ack_numbers(const struct tcphdr *tcp, bool is_ipv6);
 void print_tcp_cksum(const struct tcphdr *tcp, bool is_ipv6);
+void print_tcp_options(const struct tcphdr *tcp);
 
 #endif  // SRC_PROTOCOLS_TRANSPORT_TCP_TCP_H_

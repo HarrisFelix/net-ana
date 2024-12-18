@@ -2,6 +2,8 @@
 #include <ctype.h>
 #include <stdint.h>
 
+extern int payload_length;
+
 /* https://stackoverflow.com/questions/2408976/struct-timeval-to-printable-format
  */
 void print_timestamp(const struct pcap_pkthdr *header) {
@@ -46,6 +48,24 @@ void print_packet_bytes(const u_char *packet, uint len) {
   }
 }
 
+/* Print the clear text of a packet */
+void print_clear_text(const char *clear_text) {
+  /* First we check if the clear text is printable */
+  for (int i = 0; i < payload_length; i++)
+    if (!isprint(clear_text[i]))
+      return;
+
+  /* If we're here, that means the packet is printable */
+  printf("\n\t\t");
+  for (int i = 0; i < payload_length; i++) {
+    if (clear_text[i] == '\n') {
+      printf("\n\t\t");
+    } else {
+      printf("%c", clear_text[i]);
+    }
+  }
+}
+
 /* https://datatracker.ietf.org/doc/html/rfc1071
  * Little endian implementation of a checksum */
 uint16_t validate_checksum(const void *pseudo_header, bool is_ipv6,
@@ -72,6 +92,7 @@ uint16_t validate_checksum(const void *pseudo_header, bool is_ipv6,
     sum += htons(((uint16_t *)packet)[i]);
   }
 
-  /* Bit manipiulation to add the carry and not consider it in the complement */
+  /* Bit manipiulation to add the carry and not consider it in the
+   * complement */
   return (uint16_t)~(sum + (sum >> 16) & 0xffff);
 }

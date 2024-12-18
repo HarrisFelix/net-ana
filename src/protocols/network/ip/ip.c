@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 extern enum verbosity_level verbosity;
-extern u_int payload_length;
+extern int payload_length;
 
 /* Print the encapsulated protocol of an IP frame
  * TODO: Not happy with the way the len is managed, sometimes transformed into

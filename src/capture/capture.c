@@ -24,7 +24,7 @@ extern char const *program_name;
 extern enum verbosity_level verbosity;
 pcap_t *handle;
 u_int captured_packets_count = 0;
-u_int payload_length = 0;
+int payload_length = 0;
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
                 const u_char *packet) {
@@ -84,7 +84,8 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   }
 
   /* Payload length */
-  printf(", length %d", payload_length);
+  if (payload_length != LET_ENCAPSULATED_PROTOCOL_PRINT_PAYLOAD_LENGTH)
+    printf(", length %d", payload_length);
 
   /* Print the bytes and ASCII of the packet. */
   if (verbosity == HIGH)
