@@ -29,6 +29,7 @@ int payload_length = 0;
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
                 const u_char *packet) {
   /* Define packet handling related structures. */
+  (void)args;
   uint16_t protocol;
   u_int size_header;
 

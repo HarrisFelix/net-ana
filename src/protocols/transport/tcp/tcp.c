@@ -235,12 +235,13 @@ void print_tcp_cksum(const struct tcphdr *tcp, bool is_ipv6) {
   } else {
     struct pseudo_ip_hdr pseudo_ip;
     struct ip *ip = (struct ip *)((char *)tcp - sizeof(struct ip));
+    int tcp_length = htons(ip->ip_len) - ip->ip_hl * 4;
     set_pseudo_ip_hdr(&pseudo_ip, ip->ip_src, ip->ip_dst, ip->ip_p,
-                      htons(ip->ip_len));
+                      ntohs(tcp_length));
 
     printf(", tcp cksum 0x%04x (%s)", htons(tcp->th_sum),
            validate_checksum((const void *)&pseudo_ip, is_ipv6, tcp,
-                             (payload_length))
+                             LITTLE_ENDIAN_INT_TO_32_BIT_WORDS(tcp_length))
                ? "incorrect"
                : "correct");
   }

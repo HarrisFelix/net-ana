@@ -7,6 +7,7 @@
 #include "ip.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 extern enum verbosity_level verbosity;
 extern int payload_length;
@@ -84,10 +85,10 @@ void print_ip_frame(const struct ip *ip) {
 
 void set_pseudo_ip_hdr(struct pseudo_ip_hdr *pseudo_ip,
                        const struct in_addr src, const struct in_addr dst,
-                       uint8_t protocol, uint16_t tcp_len) {
+                       uint8_t protocol, uint16_t payload_len) {
   pseudo_ip->ip_src = src;
   pseudo_ip->ip_dst = dst;
   pseudo_ip->zero = 0;
   pseudo_ip->ip_p = protocol;
-  pseudo_ip->tcp_len = tcp_len;
+  pseudo_ip->payload_len = payload_len;
 }

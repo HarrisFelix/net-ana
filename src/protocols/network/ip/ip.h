@@ -11,7 +11,7 @@ struct pseudo_ip_hdr {
   struct in_addr ip_dst; /* destination address */
   uint8_t zero;          /* zero byte */
   uint8_t ip_p;          /* protocol */
-  uint16_t tcp_len;      /* TCP header and payload length */
+  uint16_t payload_len;  /* Payload length */
 } __attribute__((packed));
 
 void print_ip_encapsulated_protocol(const void *header, u_char protocol,
