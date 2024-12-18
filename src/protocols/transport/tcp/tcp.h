@@ -43,8 +43,8 @@ void print_tcp_encapsulated_protocol(const struct tcphdr *tcp);
 bool match_port_to_protocol(const struct tcphdr *tcp, uint16_t port);
 void print_tcp_frame(const struct tcphdr *tcp, bool is_ipv6);
 void print_tcp_flags(uint8_t flags);
-inline bool tcp_is_session_start(uint8_t flags);
-inline uint32_t tcp_get_session_id(const struct tcphdr *tcp, bool is_ipv6);
+bool tcp_is_session_start(uint8_t flags);
+uint32_t tcp_get_session_id(const struct tcphdr *tcp, bool is_ipv6);
 void get_session_info(const struct tcphdr *tcp,
                       struct tcp_session_info *session, bool is_ipv6);
 void print_seq_ack_numbers(const struct tcphdr *tcp, bool is_ipv6);

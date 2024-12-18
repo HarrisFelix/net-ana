@@ -129,7 +129,7 @@ void print_tcp_flags(uint8_t flags) {
   printf("]");
 }
 
-inline bool tcp_is_session_start(uint8_t flags) {
+bool tcp_is_session_start(uint8_t flags) {
   return flags == (TH_SYN | TH_ACK) || flags == TH_SYN;
 }
 
@@ -154,7 +154,7 @@ void print_seq_ack_numbers(const struct tcphdr *tcp, bool is_ipv6) {
 }
 
 /* Simplest possible method to get a sort of "hash", a semi-unique identifier */
-inline uint32_t tcp_get_session_id(const struct tcphdr *tcp, bool is_ipv6) {
+uint32_t tcp_get_session_id(const struct tcphdr *tcp, bool is_ipv6) {
   if (is_ipv6) {
     struct ip6_hdr *ip6 =
         (struct ip6_hdr *)((char *)tcp - sizeof(struct ip6_hdr));
