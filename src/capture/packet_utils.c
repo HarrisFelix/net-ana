@@ -36,10 +36,10 @@ void print_packet_bytes(const u_char *packet, uint len) {
 
     /* ASCII */
     if ((i + 1) % 16 == 0 || i == len - 1) {
-      /* Some explanation, a typical HEX block would be " 0000" and would be
-       * comprised of 2 bytes, so each byte occupy half the length of that,
-       * which is 2.5 We multiply the length occupied by a byte by the number of
-       * bytes left we need to fill row */
+      /* Some explanation, a typical HEX block would be " 0000" (space included)
+       * and would be comprised of 2 bytes, so each byte occupy half the length
+       * of that, which is 2.5 We multiply the length occupied by a byte by the
+       * number of bytes left we need to fill row */
       int padding = ((16 - ((i + 1) % 16)) % 16) * 2.5;
       printf(" %*s ", padding, "");
 
