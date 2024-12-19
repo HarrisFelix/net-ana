@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __linux__
+#include <netinet/ether.h>
+#endif
+
 extern enum verbosity_level verbosity;
 extern ether_type_t ether_types[];
 extern const size_t ETHERTYPES_LEN;

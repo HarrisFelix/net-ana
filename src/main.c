@@ -7,7 +7,7 @@
 
 char const *program_name;
 
-void usage() {
+void usage(void) {
   printf(
       "Usage: %s [ -i interface ] [ -o file ] [ -f filter ] [ -v verbosity ]\n",
       program_name);
@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   char *interface = NULL;
   char *file = NULL;
   char *filter = NULL;
-  int verbosity = 1;
+  int verbosity_arg = 1;
   bool supplied_verbosity = false;
 
   int index;
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
       filter = optarg;
       break;
     case 'v':
-      verbosity = atoi(optarg);
+      verbosity_arg = atoi(optarg);
       supplied_verbosity = true;
       break;
     case '?':
@@ -50,11 +50,11 @@ int main(int argc, char **argv) {
 
   /* Doesn't allow the verbosity to be set outside range, but if it wasn't
    * supplied set it to 0 for a minimal output, equivalent to tcpdump -q */
-  if (verbosity < 1 || verbosity > 3) {
+  if (verbosity_arg < 1 || verbosity_arg > 3) {
     fputs("-v must be set between 1 and 3.\n", stderr);
     return EXIT_FAILURE;
   } else if (!supplied_verbosity) {
-    verbosity = 0;
+    verbosity_arg = 0;
   }
 
   for (index = optind; index < argc; index++) {
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
     interface = NULL;
   }
 
-  capture_loop(interface, file, filter, (u_int)verbosity);
+  capture_loop(interface, file, filter, (u_int)verbosity_arg);
 
   return EXIT_SUCCESS;
 }

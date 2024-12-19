@@ -6,6 +6,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef __linux__
+#include <netinet/ether.h>
+#endif
+
 extern enum verbosity_level verbosity;
 
 ether_type_t ether_types[] = {

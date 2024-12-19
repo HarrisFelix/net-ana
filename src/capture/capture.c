@@ -136,7 +136,7 @@ void capture_loop(char *interface, char *file, char *filter,
     }
 
     apply_bpf_filter(interface, &fp, &mask, &net, filter);
-    signal(SIGINT, print_live_capture_summary);
+    signal(SIGINT, (void (*)(int))print_live_capture_summary);
   }
 
   /* Pretty print to show which interface or file we are sniffing */

@@ -60,7 +60,7 @@ void apply_bpf_filter(char *interface, struct bpf_program *fp,
   }
 }
 
-char *custom_lookupdev() {
+char *custom_lookupdev(void) {
   char errbuf[PCAP_ERRBUF_SIZE];
   char *interface = NULL;
   pcap_if_t *device, *alldevs;
@@ -87,7 +87,7 @@ char *custom_lookupdev() {
   return interface;
 }
 
-void print_live_capture_summary() {
+void print_live_capture_summary(void) {
   int stats_err = 0;
   struct pcap_stat packet_stats;
 
@@ -107,7 +107,7 @@ void print_live_capture_summary() {
          packet_stats.ps_drop != 1 ? 's' : 0);
 }
 
-void print_devices() {
+void print_devices(void) {
   char errbuf[PCAP_ERRBUF_SIZE];
   pcap_if_t *device, *alldevs;
 

@@ -15,8 +15,8 @@ extern enum verbosity_level verbosity;
 void init_message(char *interface, char *file, bool defaulting);
 void apply_bpf_filter(char *interface, struct bpf_program *fp,
                       bpf_u_int32 *mask, bpf_u_int32 *net, char *filter);
-char *custom_lookupdev();
-void print_devices();
-void print_live_capture_summary();
+char *custom_lookupdev(void);
+void print_devices(void);
+void print_live_capture_summary(void);
 
 #endif  // SRC_CAPTURE_CAPTURE_UTILS_H_

@@ -1,6 +1,7 @@
 #include "packet_utils.h"
 #include <ctype.h>
 #include <stdint.h>
+#include <time.h>
 
 extern int payload_length;
 
@@ -94,5 +95,5 @@ uint16_t validate_checksum(const void *pseudo_header, bool is_ipv6,
 
   /* Bit manipiulation to add the carry and not consider it in the
    * complement */
-  return (uint16_t)~(sum + (sum >> 16) & 0xffff);
+  return (uint16_t)~((sum + (sum >> 16)) & 0xffff);
 }
