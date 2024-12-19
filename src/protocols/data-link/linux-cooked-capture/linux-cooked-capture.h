@@ -6,6 +6,10 @@
 #include <pcap/sll.h>
 #include <stdint.h>
 
+#define ARPHRD_IEEE80211_RADIOTAP 803
+#define ARPHRD_IPGRE 778
+#define ARPHRD_FRAD 770
+
 uint16_t print_linux_cooked_header(const struct sll2_header *sll2);
 
 #endif  // SRC_PROTOCOLS_DATA_LINK_LINUX_COOKED_CAPTURE_LINUX_COOKED_CAPTURE_H_

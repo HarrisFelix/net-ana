@@ -44,6 +44,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
         print_ethernet_header((const struct ether_header *)packet, header->len);
     break;
   case DLT_NULL:
+  case DLT_LOOP:
     /* BSD Loopback protocol */
     size_header = sizeof(struct bsd_loopback_hdr);
     protocol = print_loopback_header((const struct bsd_loopback_hdr *)packet);
