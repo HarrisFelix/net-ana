@@ -93,6 +93,9 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
   case ETHERTYPE_ARP:
     print_arp_frame((struct arphdr *)(packet + size_header));
     break;
+  default:
+    printf(", unknown protocol 0x%04x", protocol);
+    break;
   }
 
   /* Payload length */
