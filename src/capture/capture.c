@@ -55,11 +55,17 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
     protocol = (packet[0] >> 4) == 4 ? ETHERTYPE_IP : ETHERTYPE_IPV6;
     printf(" RAW IPv%c", protocol == ETHERTYPE_IP ? '4' : '6');
     break;
+  case DLT_LINUX_SLL:
+    /* Linux Cooked Capture */
+    /* TODO: Complete support for Linux Cooked Capture */
+    size_header = sizeof(struct sll_header);
+    protocol = print_linux_cooked_header((const struct sll_header *)packet);
+    break;
   case DLT_LINUX_SLL2:
     /* Linux Cooked Capture 2 */
-    /* TODO: Complete support for Linux Cooked Capture */
+    /* TODO: Complete support for Linux Cooked Capture 2 */
     size_header = sizeof(struct sll2_header);
-    protocol = print_linux_cooked_header((const struct sll2_header *)packet);
+    protocol = print_linux_cooked_2_header((const struct sll2_header *)packet);
     break;
   default:
     /* Unsupported link type */
