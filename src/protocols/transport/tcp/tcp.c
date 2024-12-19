@@ -137,6 +137,9 @@ void print_seq_ack_numbers(const struct tcphdr *tcp, bool is_ipv6) {
   struct tcp_session_info session;
   get_session_info(tcp, &session, is_ipv6);
 
+  /* HACK: Kind of weird, relative seq seems correct without the need to
+   * increment it by one, but that's not the case for the relative ack, this is
+   * good enough for now... */
   if (!session.session_id) {
     printf(", seq %u", htonl(tcp->th_seq));
     printf(", ack %u", htonl(tcp->th_ack));
@@ -184,12 +187,12 @@ void get_session_info(const struct tcphdr *tcp,
     if (tcp_sessions[i].session_id == session->session_id)
       found = true;
 
-  /* We decrement i because we incremented it one too many times */
   if (found)
+    /* We decrement i because we incremented it one too many times */
     i--;
 
   /* If we're not the start of a session, and haven't found anything, we set the
-   * session ID to 0 as a warning to the parent functions, if we did find
+   * session ID to 0 as a warning to the calling functions, if we did find
    * something we set the ISN (as offsets) */
   if (!tcp_is_session_start(tcp->th_flags)) {
     if (!found) {
