@@ -15,7 +15,12 @@ void print_timestamp(const struct pcap_pkthdr *header) {
   nowtime = header->ts.tv_sec;
   nowtm = localtime(&nowtime);
   strftime(tmbuf, sizeof tmbuf, "%H:%M:%S", nowtm);
+#ifdef __APPLE__
   snprintf(buf, sizeof buf, "%s.%06d", tmbuf, header->ts.tv_usec);
+#else
+  snprintf(buf, sizeof buf, "%s.%06ld", tmbuf, header->ts.tv_usec);
+#endif
+
   printf("[%s]", buf);
 }
 
