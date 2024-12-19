@@ -30,8 +30,8 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
                 const u_char *packet) {
   /* Define packet handling related structures. */
   (void)args;
-  uint16_t protocol;
-  u_int size_header;
+  uint16_t protocol = 0;
+  u_int size_header = 0;
 
   print_timestamp(header);
 
@@ -60,6 +60,10 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
     size_header = sizeof(struct sll2_header);
     protocol = print_linux_cooked_header((const struct sll2_header *)packet);
     break;
+  default:
+    /* Unsupported link type */
+    fprintf(stderr, "Unsupported link type %d\n", pcap_datalink(handle));
+    exit(EXIT_FAILURE);
   }
 
   /* Size of the frame without counting the ethernet header, each protocol is
