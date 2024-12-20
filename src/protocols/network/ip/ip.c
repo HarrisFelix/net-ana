@@ -36,7 +36,10 @@ void print_ip_encapsulated_protocol(const void *header, u_char protocol,
 }
 
 void print_ip_frame(const struct ip *ip) {
+  print_protocol_spacing();
+
   if (verbosity >= MEDIUM) {
+    printf("IP");
     printf(" (");
     if (verbosity == HIGH) {
       printf("version %d", ip->ip_v);
@@ -54,11 +57,11 @@ void print_ip_frame(const struct ip *ip) {
            (htons(ip->ip_off) & ~IP_OFFMASK) ? "" : "none");
     printf(", proto %s (%d)",
            string_to_upper(getprotobynumber(ip->ip_p)->p_name), ip->ip_p);
-    printf(", chksum 0x%04x (%s)", htons(ip->ip_sum),
+    printf(", ip chksum 0x%04x %s", htons(ip->ip_sum),
            (validate_checksum(NULL, false, (const void *)ip, ip->ip_hl))
-               ? "incorrect"
-               : "correct");
-    printf(", length %d)", htons(ip->ip_len));
+               ? "bad!"
+               : "ok");
+    printf(", length %d), ", htons(ip->ip_len));
   }
 
   /* Print the source and destination addresses */
@@ -66,7 +69,7 @@ void print_ip_frame(const struct ip *ip) {
 
   /* Source */
   inet_ntop(AF_INET, &ip->ip_src, hbuf, INET_ADDRSTRLEN);
-  printf(", %s >", hbuf);
+  printf("%s >", hbuf);
 
   /* Destination */
   inet_ntop(AF_INET, &ip->ip_dst, hbuf, INET_ADDRSTRLEN);

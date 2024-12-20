@@ -7,7 +7,8 @@
 extern enum verbosity_level verbosity;
 
 void print_icmp_frame(const struct icmp *icmp, uint16_t len) {
-  printf(": ICMP");
+  print_protocol_spacing();
+  printf("ICMP");
 
   switch (icmp->icmp_type) {
   case ICMP_ECHOREPLY:
@@ -24,7 +25,6 @@ void print_icmp_frame(const struct icmp *icmp, uint16_t len) {
   printf(", id %d, seq %d", htons(icmp->icmp_id), htons(icmp->icmp_seq));
 
   if (verbosity >= MEDIUM)
-    printf(", cksum 0x%04x (%s)", htons(icmp->icmp_cksum),
-           validate_checksum(NULL, false, icmp, htons(len)) ? "incorrect"
-                                                            : "correct");
+    printf(", icmp cksum 0x%04x %s", htons(icmp->icmp_cksum),
+           validate_checksum(NULL, false, icmp, htons(len)) ? "bad!" : "ok");
 }

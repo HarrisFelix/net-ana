@@ -1,4 +1,5 @@
 #include "../../../capture/capture_utils.h"
+#include "../../../capture/packet_utils.h"
 #include "../../../utils/utils.h"
 #include "../ethernet/ethernet.h"
 #include "arp.h"
@@ -86,19 +87,19 @@ void print_arp_frame(const struct arphdr *arp) {
   case ARPOP_REPLY:
     printf(", %s", is_gratuitous ? "Announcement" : "Reply");
     printf(" %s", inet_ntoa(*(struct in_addr *)ar_spa));
-    printf(" is-at %s (oui Unknown)",
-           ether_ntoa((const struct ether_addr *)ar_sha));
+    printf(" is-at %s (oui %s)", ether_ntoa((const struct ether_addr *)ar_sha),
+           get_oui(ar_spa));
     break;
   case ARPOP_REVREQUEST:
-    printf(", Reverse Request who-is %s (oui Unknown)",
-           ether_ntoa((const struct ether_addr *)ar_sha));
-    printf(" tell %s (oui Unknown)",
-           ether_ntoa((const struct ether_addr *)ar_tha));
+    printf(", Reverse Request who-is %s (oui %s)",
+           ether_ntoa((const struct ether_addr *)ar_sha), get_oui(ar_spa));
+    printf(" tell %s (oui %s)", ether_ntoa((const struct ether_addr *)ar_tha),
+           get_oui(ar_spa));
     break;
   case ARPOP_REVREPLY:
     printf(", Reverse Reply %s", ether_ntoa((const struct ether_addr *)ar_tha));
-    printf(" is-at %s (oui Unknown)",
-           ether_ntoa((const struct ether_addr *)ar_sha));
+    printf(" is-at %s (oui %s)", ether_ntoa((const struct ether_addr *)ar_sha),
+           get_oui(ar_spa));
     break;
   default:
     /* https://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml */

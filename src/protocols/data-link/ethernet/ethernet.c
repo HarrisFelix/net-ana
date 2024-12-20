@@ -34,11 +34,13 @@ uint16_t print_ethernet_header(const struct ether_header *ethernet,
   bool is_802_3 = htons(ethernet->ether_type) <= ETH_FRAME_TYPE_THRESHOLD;
 
   if (!is_802_3) {
+    printf(" Ethernet");
     /* https://en.wikipedia.org/wiki/EtherType */
     name_value_pair = get_name_value_pair(
         htons(ethernet->ether_type), (struct name_value_pair_t *)ether_types,
         ETHERTYPES_LEN);
   } else {
+    printf(" IEEE 802.3");
     /* Explaining the pointer logic, we're looking at the memory right after the
      * traditional EtherType field which here actually contains a length since
      * it's IEEE 802.3, we could have defined a struct to make it more obvious

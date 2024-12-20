@@ -18,5 +18,6 @@ void apply_bpf_filter(char *interface, struct bpf_program *fp,
 char *custom_lookupdev(void);
 void print_devices(void);
 void print_live_capture_summary(void);
+void print_protocol_spacing(void);
 
 #endif  // SRC_CAPTURE_CAPTURE_UTILS_H_

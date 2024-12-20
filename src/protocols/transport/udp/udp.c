@@ -17,24 +17,26 @@ void print_udp_encapsulated_protocol(const struct udphdr *udp) {
     print_dns_frame();
   } else if (src == BOOTP_DHCP_SERVER_PORT || dst == BOOTP_DHCP_SERVER_PORT ||
              src == BOOTP_DHCP_CLIENT_PORT || dst == BOOTP_DHCP_CLIENT_PORT) {
-    print_bootp_frame((const struct bootp *)udp + sizeof(struct udphdr));
+    print_bootp_frame((const struct bootp *)(udp + 1));
   } else {
     printf(": Unsupported protocol");
   }
 }
 
 void print_udp_frame(const struct udphdr *udp, bool is_ipv6) {
-  printf(": UDP");
+  print_protocol_spacing();
+  printf("UDP");
   printf(", ports [src:%d, dst:%d]", htons(udp->uh_sport),
          htons(udp->uh_dport));
 
   if (verbosity <= LOW) {
+    print_udp_encapsulated_protocol(udp);
     return;
   }
 
   printf(", udp length %d", htons(udp->uh_ulen));
   print_udp_cksum(udp, is_ipv6);
-  payload_length -= (htons(udp->uh_ulen) - payload_length);
+  payload_length -= (payload_length - htons(udp->uh_ulen));
   print_udp_encapsulated_protocol(udp);
 }
 
@@ -52,8 +54,8 @@ void print_udp_cksum(const struct udphdr *udp, bool is_ipv6) {
            validate_checksum(
                (const void *)&pseudo_ip6, is_ipv6, udp,
                LITTLE_ENDIAN_INT_TO_32_BIT_WORDS(htons(udp->uh_ulen)))
-               ? "incorrect"
-               : "correct");
+               ? "bad!"
+               : "ok");
 
   } else {
     struct pseudo_ip_hdr pseudo_ip;
@@ -65,7 +67,7 @@ void print_udp_cksum(const struct udphdr *udp, bool is_ipv6) {
            validate_checksum(
                (const void *)&pseudo_ip, is_ipv6, udp,
                LITTLE_ENDIAN_INT_TO_32_BIT_WORDS(htons(udp->uh_ulen)))
-               ? "incorrect"
-               : "correct");
+               ? "bad!"
+               : "ok");
   }
 }

@@ -33,13 +33,15 @@ void print_ip6_encapsulated_protocol(const void *header, u_char protocol,
 }
 
 void print_ip6_frame(const struct ip6_hdr *ip6) {
+  print_protocol_spacing();
   if (verbosity >= MEDIUM) {
+    printf("IPv6");
     printf(" (flowlabel 0x%x", htonl(ip6->ip6_flow & IPV6_FLOWLABEL_MASK));
     printf(", hlim %d", htons(ip6->ip6_hlim));
     printf(", next-header %s (%d)",
            string_to_upper(getprotobynumber(ip6->ip6_nxt)->p_name),
            ip6->ip6_nxt);
-    printf(", payload length: %d)", htons(ip6->ip6_plen));
+    printf(", payload length: %d), ", htons(ip6->ip6_plen));
   }
 
   /* Same logic as the IPv4 frame */
@@ -47,7 +49,7 @@ void print_ip6_frame(const struct ip6_hdr *ip6) {
 
   /* Source */
   inet_ntop(AF_INET6, &ip6->ip6_src, hbuf, INET6_ADDRSTRLEN);
-  printf(", %s >", hbuf);
+  printf("%s >", hbuf);
 
   /* Destination */
   inet_ntop(AF_INET6, &ip6->ip6_dst, hbuf, INET6_ADDRSTRLEN);

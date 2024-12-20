@@ -131,3 +131,11 @@ void print_devices(void) {
 
   pcap_freealldevs(alldevs);
 }
+
+void print_protocol_spacing(void) {
+  if (verbosity <= LOW)
+    printf(": ");
+  else
+    printf("\n\t");
+  ;
+}

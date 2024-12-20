@@ -9,7 +9,8 @@ void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len) {
   char buf[INET6_ADDRSTRLEN];
   union icmp6_un icmp6_un;
 
-  printf(": ICMP6");
+  print_protocol_spacing();
+  printf("ICMP6");
 
   if (verbosity >= MEDIUM) {
     /* Pseudo header for checksum calculation as per RFC 4443, some pointer
@@ -20,11 +21,11 @@ void print_icmp6_frame(const struct icmp6_hdr *icmp6, uint16_t len) {
     set_pseudo_ip6_hdr(&pseudo_ip6, ip6->ip6_src, ip6->ip6_dst, len,
                        IPPROTO_ICMPV6);
 
-    printf(", cksum 0x%04x (%s)", htons(icmp6->icmp6_cksum),
+    printf(", icmp6 cksum 0x%04x %s", htons(icmp6->icmp6_cksum),
            validate_checksum((const void *)&pseudo_ip6, true, icmp6,
                              htons(len) / 4)
-               ? "incorrect"
-               : "correct");
+               ? "bad!"
+               : "ok");
   }
 
   switch (icmp6->icmp6_type) {

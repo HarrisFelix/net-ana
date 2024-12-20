@@ -62,12 +62,16 @@ bool match_port_to_protocol(const struct tcphdr *tcp, uint16_t port) {
 
 /* https://datatracker.ietf.org/doc/html/rfc9293 */
 void print_tcp_frame(const struct tcphdr *tcp, bool is_ipv6) {
-  printf(": TCP");
+  print_protocol_spacing();
+  printf("TCP");
   printf(", ports [src:%d, dst:%d]", htons(tcp->th_sport),
          htons(tcp->th_dport));
 
-  if (verbosity <= LOW)
+  if (verbosity <= LOW) {
+    payload_length -= tcp->th_off * 4;
+    print_tcp_encapsulated_protocol(tcp);
     return;
+  }
 
   print_seq_ack_numbers(tcp, is_ipv6);
   printf(", offset %d", tcp->th_off);
@@ -226,12 +230,12 @@ void print_tcp_cksum(const struct tcphdr *tcp, bool is_ipv6) {
     set_pseudo_ip6_hdr(&pseudo_ip6, ip6->ip6_src, ip6->ip6_dst, ip6->ip6_plen,
                        ip6->ip6_nxt);
 
-    printf(", tcp cksum 0x%04x (%s)", htons(tcp->th_sum),
+    printf(", tcp cksum 0x%04x %s", htons(tcp->th_sum),
            validate_checksum(
                (const void *)&pseudo_ip6, is_ipv6, tcp,
                LITTLE_ENDIAN_INT_TO_32_BIT_WORDS(htons(ip6->ip6_plen)))
-               ? "incorrect"
-               : "correct");
+               ? "bad!"
+               : "ok");
 
   } else {
     struct pseudo_ip_hdr pseudo_ip;
@@ -240,11 +244,11 @@ void print_tcp_cksum(const struct tcphdr *tcp, bool is_ipv6) {
     set_pseudo_ip_hdr(&pseudo_ip, ip->ip_src, ip->ip_dst, ip->ip_p,
                       ntohs(tcp_length));
 
-    printf(", tcp cksum 0x%04x (%s)", htons(tcp->th_sum),
+    printf(", tcp cksum 0x%04x %s", htons(tcp->th_sum),
            validate_checksum((const void *)&pseudo_ip, is_ipv6, tcp,
                              LITTLE_ENDIAN_INT_TO_32_BIT_WORDS(tcp_length))
-               ? "incorrect"
-               : "correct");
+               ? "bad!"
+               : "ok");
   }
 }
 

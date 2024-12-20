@@ -7,7 +7,8 @@ extern int payload_length;
 extern enum verbosity_level verbosity;
 
 void print_pop3_frame(const char *pop3) {
-  printf(": POP3");
+  print_protocol_spacing();
+  printf("POP3");
 
   if (verbosity >= MEDIUM && payload_length) {
     printf(", length %d", payload_length);

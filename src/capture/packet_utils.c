@@ -1,6 +1,7 @@
 #include "packet_utils.h"
 #include <ctype.h>
 #include <stdint.h>
+#include <string.h>
 #include <time.h>
 
 extern int payload_length;
@@ -54,12 +55,33 @@ void print_packet_bytes(const u_char *packet, uint len) {
   }
 }
 
+oui_t oui_list[] = {
+    {"00:00:0c", "Cisco Systems, Inc."},
+    {"00:00:5e", "IANA"},
+    {"01:00:5e", "IANA"},
+};
+
+#define OUI_LIST_LEN (sizeof(oui_list) / sizeof(oui_t))
+
+const char *get_oui(const unsigned char *mac) {
+  for (unsigned long i = 0; i < OUI_LIST_LEN; i++) {
+    if (strncmp((char *)mac, oui_list[i].oui, 8) == 0) {
+      return oui_list[i].name;
+    }
+  }
+
+  return "Unknown";
+}
+
 /* Print the clear text of a packet */
 void print_clear_text(const char *clear_text) {
-  /* First we check if the clear text is printable */
+  /* First we check if the clear text is printable or if it is a control
+   * character */
   for (int i = 0; i < payload_length; i++)
-    if (!isprint(clear_text[i]))
+    if (!isprint(clear_text[i]) &&
+        !(clear_text[i] >= 0 && clear_text[i] <= 31)) {
       return;
+    }
 
   /* If we're here, that means the packet is printable */
   printf("\n\t\t");
@@ -86,7 +108,7 @@ uint16_t validate_checksum(const void *pseudo_header, bool is_ipv6,
     pseudo_header_len = 6;
 
   /* If there's a pseudo IPv6 or IPv4 header, sum it
-   * Its length is always 10 32-bit words */
+   * Its length is always 10 32-bit words if IPv6 */
   if (pseudo_header) {
     for (uint i = 0; i < pseudo_header_len; i++) {
       sum += htons(((uint16_t *)pseudo_header)[i]);

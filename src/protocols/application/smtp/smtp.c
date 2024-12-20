@@ -7,7 +7,8 @@ extern int payload_length;
 extern enum verbosity_level verbosity;
 
 void print_smtp_frame(const char *smtp) {
-  printf(": SMTP");
+  print_protocol_spacing();
+  printf("SMTP");
 
   if (verbosity >= MEDIUM && payload_length) {
     printf(", length %d", payload_length);
